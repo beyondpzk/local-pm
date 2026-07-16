@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>研发进度规划 - 本地项目管理</title>
+  <link rel="stylesheet" href="/static/roadmap.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-left">
+      <a href="/" class="back-link">← 返回项目列表</a>
+      <h1 id="page-title">研发进度规划</h1>
+    </div>
+    <div class="actions">
+      <button id="btn-edit" class="btn">编辑</button>
+      <button id="btn-save" class="btn primary hidden">保存</button>
+      <button id="btn-cancel" class="btn hidden">取消</button>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="timeline-wrap">
+      <div id="gantt" class="gantt">
+        <!-- 动态生成 -->
+      </div>
+    </div>
+  </main>
+
+  <div id="modal" class="modal hidden" aria-hidden="true">
+    <div class="modal-backdrop"></div>
+    <div class="modal-card">
+      <h2 id="modal-title">编辑任务</h2>
+      <form id="item-form">
+        <input type="hidden" id="item-lane-idx">
+        <input type="hidden" id="item-idx">
+        <label>
+          任务名称
+          <input type="text" id="item-name" required>
+        </label>
+        <div class="form-row">
+          <label>
+            开始日期
+            <input type="date" id="item-start" required>
+          </label>
+          <label>
+            结束日期
+            <input type="date" id="item-end" required>
+          </label>
+        </div>
+        <label>
+          颜色
+          <input type="color" id="item-color" value="#e5e7eb">
+        </label>
+        <label>
+          里程碑（每行一个，格式：YYYY-MM-DD 名称）
+          <textarea id="item-milestones" rows="4" placeholder="2026-07-20 项目立项\n2026-08-15 传感器布局确认"></textarea>
+        </label>
+        <div class="modal-actions">
+          <button type="button" id="btn-delete-item" class="btn danger">删除任务</button>
+          <div class="right-actions">
+            <button type="button" id="btn-modal-cancel" class="btn">取消</button>
+            <button type="submit" class="btn primary">保存</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="/static/roadmap.js"></script>
+</body>
+</html>

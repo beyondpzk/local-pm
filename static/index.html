@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>本地项目管理</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <h1>本地项目管理</h1>
+    <div class="actions">
+      <a href="/roadmap" class="btn">📊 进度规划</a>
+      <button id="btn-new-project" class="btn primary">+ 新建项目</button>
+      <button id="btn-export" class="btn">导出 JSON</button>
+      <button id="btn-import" class="btn">导入 JSON</button>
+      <input type="file" id="import-file" accept="application/json,.json" hidden>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="toolbar">
+      <input type="search" id="search" placeholder="搜索项目或任务…" class="search-input">
+      <span id="stats" class="stats"></span>
+    </div>
+
+    <div class="filter-row" id="filter-row">
+      <button class="filter-btn active" data-status="all">全部</button>
+      <button class="filter-btn" data-status="active">进行中</button>
+      <button class="filter-btn" data-status="done">已完成</button>
+      <button class="filter-btn" data-status="archived">已归档</button>
+    </div>
+
+    <div id="project-list" class="project-list"></div>
+
+    <div id="empty-state" class="empty-state hidden">
+      <p>还没有项目，点击右上角“新建项目”开始。</p>
+    </div>
+  </main>
+
+  <div id="modal" class="modal hidden" aria-hidden="true">
+    <div class="modal-backdrop"></div>
+    <div class="modal-card">
+      <h2 id="modal-title">新建项目</h2>
+      <form id="project-form">
+        <input type="hidden" id="project-id">
+        <label>
+          项目名称
+          <input type="text" id="project-name" required placeholder="例如：官网改版">
+        </label>
+        <label>
+          描述
+          <textarea id="project-description" rows="3" placeholder="可选的项目描述"></textarea>
+        </label>
+        <label>
+          状态
+          <select id="project-status">
+            <option value="active">进行中</option>
+            <option value="archived">已归档</option>
+            <option value="done">已完成</option>
+          </select>
+        </label>
+        <div class="modal-actions">
+          <button type="button" id="btn-cancel" class="btn">取消</button>
+          <button type="submit" class="btn primary">保存</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

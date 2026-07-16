@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+.env
+.venv/
+
+# macOS
+.DS_Store
+
+# Local data & logs (private)
+data/*.json
+logs/
+
+# IDE
+.idea/
+.vscode/
