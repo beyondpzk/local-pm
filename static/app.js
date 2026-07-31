@@ -373,7 +373,8 @@ els.list.addEventListener('click', async e => {
     try {
       await api('PUT', `${API}/${projectId}/tasks/${taskId}`, { priority: newPriority });
     } catch (err) {
-      task.priority = cycle[newPriority] || 'medium';
+      const reverseCycle = { high: 'medium', medium: 'low', low: 'high' };
+      task.priority = reverseCycle[newPriority] || 'medium';
       render();
       alert('更新失败：' + err.message);
     }

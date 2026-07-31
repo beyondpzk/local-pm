@@ -20,6 +20,7 @@ ROADMAP_FILE = os.path.join(BASE_DIR, "data", "roadmap.json")
 STATIC_DIR = os.path.join(BASE_DIR, "static")
 HOST = "127.0.0.1"
 PORT = 8765
+MAX_BODY_SIZE = 10 * 1024 * 1024  # 10 MB
 
 _data_lock = threading.Lock()
 _roadmap_lock = threading.Lock()
@@ -117,6 +118,9 @@ class APIHandler(BaseHTTPRequestHandler):
 
     def read_body(self) -> dict:
         length = int(self.headers.get("Content-Length", 0))
+        if length > MAX_BODY_SIZE:
+            self.send_json(413, {"error": "request body too large"})
+            return {}
         if length:
             raw = self.rfile.read(length).decode("utf-8")
             try:
@@ -133,13 +137,12 @@ class APIHandler(BaseHTTPRequestHandler):
         if not resolved.startswith(os.path.normpath(STATIC_DIR) + os.sep):
             self.send_json(404, {"error": "not found"})
             return
-        fp = os.path.join(STATIC_DIR, rel_path)
-        if not os.path.isfile(fp):
+        if not os.path.isfile(resolved):
             self.send_json(404, {"error": "not found"})
             return
-        ext = os.path.splitext(fp)[1].lower()
+        ext = os.path.splitext(resolved)[1].lower()
         ctype = CONTENT_TYPES.get(ext, "application/octet-stream")
-        with open(fp, "rb") as f:
+        with open(resolved, "rb") as f:
             data = f.read()
         self.send_response(200)
         self.send_header("Content-Type", ctype)
@@ -354,9 +357,18 @@ class APIHandler(BaseHTTPRequestHandler):
 
         def _update(data):
             data["lanes"] = body["lanes"]
-            data.setdefault("title", body.get("title", "研发进度规划"))
-            data.setdefault("startDate", body.get("startDate", ""))
-            data.setdefault("endDate", body.get("endDate", ""))
+            if "title" in body:
+                data["title"] = str(body["title"])
+            if "startDate" in body:
+                data["startDate"] = str(body["startDate"])
+            if "endDate" in body:
+                data["endDate"] = str(body["endDate"])
+            if "okr" in body:
+                if body["okr"] is None:
+                    data.pop("okr", None)
+                else:
+                    data["okr"] = body["okr"]
+                data.pop("q3_okr", None)
             return data
 
         roadmap = modify_roadmap(_update)
