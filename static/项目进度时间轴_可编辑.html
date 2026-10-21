@@ -353,6 +353,8 @@ function updateInspector(){
  if(selection.type==='lane'){
   desc('当前选中：泳道名称。修改后自动保存在本机，也可撤销或导出分享。');
   label('泳道名称（支持多行）',it.name||'',v=>it.name=v,'textarea');
+  desc('删除泳道会移除名称和横线，保留画布上的节点、文字和箭头。删除后可点击顶部「撤销」恢复。');
+  action('删除此泳道',()=>deleteSelected(),'danger');
   return;
  }
  desc('当前选中：'+({node:'里程碑节点',text:'自由文字',arrow:'可拖动箭头'})[selection.type]);
@@ -375,7 +377,14 @@ function updateInspector(){
 }
 // Update canvas without destroying an actively edited property input.
 function renderVisualOnly(){stage.replaceChildren();markerDefs(stage);renderBase(stage);drawObjects(stage);$('brandTitle').textContent=data.title||'项目里程碑进度图';}
-function deleteSelected(){if(!selection||!editing||selection.type==='month'||selection.type==='lane')return;snapshot();const arr=selection.type==='node'?data.nodes:selection.type==='text'?data.texts:data.arrows;
+function deleteSelected(){if(!selection||!editing||selection.type==='month')return;
+ if(selection.type==='lane'){
+  const lane=obj('lane',selection.id);if(!lane)return;
+  if(!confirm(`确定删除泳道「${lane.name}」吗？\n将移除泳道名称和横线，保留节点、文字和箭头。删除后可撤销恢复。`))return;
+  snapshot();data.lanes=data.lanes.filter(l=>l.id!==lane.id);selection=null;selectedHandle=-1;
+  render();safeSave();toast('泳道已删除，可点击「撤销」恢复');return;
+ }
+ snapshot();const arr=selection.type==='node'?data.nodes:selection.type==='text'?data.texts:data.arrows;
  const ix=arr.findIndex(o=>o.id===selection.id);if(ix>=0)arr.splice(ix,1);if(selection.type==='node')data.arrows.forEach(a=>a.points.forEach(p=>{if(p.nodeId===selection.id)delete p.nodeId;}));selection=null;render();safeSave();toast('已删除');}
 function showDialog(title,value,onSubmit){$('dialogTitle').textContent=title;$('dialogText').value=value;$('dialogBack').classList.add('show');const done=(ok)=>{$('dialogBack').classList.remove('show');$('dialogOk').onclick=null;$('dialogCancel').onclick=null;if(ok)onSubmit($('dialogText').value);};$('dialogOk').onclick=()=>done(true);$('dialogCancel').onclick=()=>done(false);$('dialogText').focus();$('dialogText').select();}
 function openTextDialog(target,field,title){showDialog(title,target[field]||'',v=>{snapshot();target[field]=v;safeSave();render();});}
