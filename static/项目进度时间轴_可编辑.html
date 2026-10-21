@@ -164,7 +164,7 @@ function snapshot(){history.push(JSON.stringify(data));if(history.length>60)hist
 function updateHistory(){$('undo').disabled=!editing||!history.length;$('redo').disabled=!editing||!future.length;}
 function undo(){if(!history.length)return;future.push(JSON.stringify(data));data=JSON.parse(history.pop());selection=null;render();updateHistory();safeSave()}
 function redo(){if(!future.length)return;history.push(JSON.stringify(data));data=JSON.parse(future.pop());selection=null;render();updateHistory();safeSave()}
-function obj(type,id){const list=type==='node'?data.nodes:type==='text'?data.texts:type==='month'?data.months:data.arrows;return type==='month'?list[id]:list.find(x=>x.id===id)}
+function obj(type,id){const list=type==='node'?data.nodes:type==='text'?data.texts:type==='month'?data.months:type==='lane'?data.lanes:data.arrows;return type==='month'?list[id]:list.find(x=>x.id===id)}
 function svg(tag,attrs={},parent=stage){const e=document.createElementNS(NS,tag);Object.entries(attrs).forEach(([k,v])=>e.setAttribute(k,String(v)));parent.appendChild(e);return e;}
 function linesText(container,x,y,str,size=13,anchor='start',opts={}){const t=svg('text',{x,y,fill:opts.color||'#26334a','font-size':size,'text-anchor':anchor,'font-weight':opts.weight||400,'font-family':'Inter, PingFang SC, Microsoft YaHei, sans-serif','pointer-events':opts.events||'none'},container);String(str).split('\n').forEach((line,i)=>{const a=svg('tspan',{x,dy:i===0?0:Math.round(size*1.48)},t);a.textContent=line;});return t;}
 function renderBase(root,forExport=false){
@@ -201,7 +201,20 @@ function renderBase(root,forExport=false){
   const yy=l.y;
   svg('line',{x1:monthStart,x2:right,y1:yy,y2:yy,stroke:'#49444c','stroke-width':1.7},b);
   if(i%2===1)svg('line',{x1:monthStart,x2:right,y1:yy+1,y2:yy+1,stroke:'#fff','stroke-width':.6,opacity:.5},b);
-  linesText(b,86,yy-3,l.name==='平台与设备'?'平台与\n设备':l.name,17,'start',{weight:650,color:'#2d3037'});
+  const laneLabel=svg('g',{},b);
+  if(editing&&!forExport){
+   laneLabel.setAttribute('role','button');laneLabel.setAttribute('tabindex','0');
+   laneLabel.setAttribute('aria-label','编辑泳道名称：'+l.name);
+   laneLabel.setAttribute('cursor','pointer');
+   const title=svg('title',{},laneLabel);title.textContent='单击在右侧修改名称，双击直接编辑';
+   svg('rect',{x:70,y:yy-29,width:150,height:Math.max(58,String(l.name).split('\n').length*25+16),rx:7,fill:selection?.type==='lane'&&selection.id===l.id?'#efe8ff':'transparent'},laneLabel);
+   const selectLane=()=>{selection={type:'lane',id:l.id};selectedHandle=-1;updateInspector();$('inspector').classList.add('show');};
+   laneLabel.addEventListener('pointerdown',ev=>ev.stopPropagation());
+   laneLabel.addEventListener('click',ev=>{ev.stopPropagation();selectLane();});
+   laneLabel.addEventListener('dblclick',ev=>{ev.stopPropagation();selectLane();openTextDialog(l,'name','编辑泳道名称');});
+   laneLabel.addEventListener('keydown',ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();ev.stopPropagation();selectLane();openTextDialog(l,'name','编辑泳道名称');}});
+  }
+  linesText(laneLabel,86,yy-3,l.name==='平台与设备'?'平台与\n设备':l.name,17,'start',{weight:650,color:'#2d3037',events:editing&&!forExport?'visiblePainted':'none'});
  });
 }
 function drawArrow(group,a,isSel=false){const pts=a.points;if(pts.length<2)return;
@@ -315,7 +328,7 @@ function updateInspector(){
  const desc=(content)=>{const d=document.createElement('div');d.className='subtle';d.textContent=content;ct.appendChild(d);};
  const label=(title,val,callback,kind='text')=>{const l=document.createElement('label');const t=document.createElement('span');t.className='formlabel';t.textContent=title;l.appendChild(t);const inp=kind==='textarea'?document.createElement('textarea'):document.createElement('input');inp.className=kind==='textarea'?'':'field';if(kind!=='textarea')inp.type=kind;inp.value=val??'';inp.disabled=!editing;inp.addEventListener('focus',()=>{if(editing)snapshot();});inp.addEventListener('input',()=>{callback(inp.value);safeSave();renderVisualOnly();});inp.addEventListener('change',()=>render());l.appendChild(inp);ct.appendChild(l);return inp;};
  function action(name,callback,cls=''){const b=document.createElement('button');b.textContent=name;b.className=cls;b.disabled=!editing;b.addEventListener('click',callback);ct.appendChild(b);}
- if(!selection){desc(editing?'选择图上的节点、文字或箭头后，可在这里修改内容。':'这是一个独立的 HTML 文件。进入编辑模式后，可以添加、拖动和修改所有里程碑对象。');
+ if(!selection){desc(editing?'单击左侧泳道名称（如基建、模型）可修改名称；也可选择节点、文字或箭头编辑。':'这是一个独立的 HTML 文件。进入编辑模式后，可以添加、拖动和修改所有里程碑对象。');
  label('项目标题',data.title||'',v=>data.title=v);
  const monthHint=document.createElement('div');monthHint.className='boxhint';monthHint.textContent='① 点击上方「进入编辑」；② 设置开始月份和显示月数；③ 直接拖动月份右边的紫色手柄加宽/缩窄，或单击月份在右侧输入精确宽度。调整时，任务与箭头也会同步定位。';ct.appendChild(monthHint);
  const h=document.createElement('div');h.className='boxhint';h.textContent='分享给同事：直接发送这个 HTML 即可查看。如需分享当前编辑结果，请点击顶部「保存可分享 HTML」，把下载的 HTML 放到共享文档中；JSON 用于单独保存或迁移编辑数据。';ct.appendChild(h);
@@ -337,6 +350,11 @@ function updateInspector(){
   return;
  }
  const it=obj(selection.type,selection.id);if(!it){selection=null;return;}
+ if(selection.type==='lane'){
+  desc('当前选中：泳道名称。修改后自动保存在本机，也可撤销或导出分享。');
+  label('泳道名称（支持多行）',it.name||'',v=>it.name=v,'textarea');
+  return;
+ }
  desc('当前选中：'+({node:'里程碑节点',text:'自由文字',arrow:'可拖动箭头'})[selection.type]);
  if(selection.type==='node')label('节点说明（鼠标悬浮可看）',it.title||'',v=>it.title=v);
  if(selection.type==='text'){
@@ -357,7 +375,7 @@ function updateInspector(){
 }
 // Update canvas without destroying an actively edited property input.
 function renderVisualOnly(){stage.replaceChildren();markerDefs(stage);renderBase(stage);drawObjects(stage);$('brandTitle').textContent=data.title||'项目里程碑进度图';}
-function deleteSelected(){if(!selection||!editing||selection.type==='month')return;snapshot();const arr=selection.type==='node'?data.nodes:selection.type==='text'?data.texts:data.arrows;
+function deleteSelected(){if(!selection||!editing||selection.type==='month'||selection.type==='lane')return;snapshot();const arr=selection.type==='node'?data.nodes:selection.type==='text'?data.texts:data.arrows;
  const ix=arr.findIndex(o=>o.id===selection.id);if(ix>=0)arr.splice(ix,1);if(selection.type==='node')data.arrows.forEach(a=>a.points.forEach(p=>{if(p.nodeId===selection.id)delete p.nodeId;}));selection=null;render();safeSave();toast('已删除');}
 function showDialog(title,value,onSubmit){$('dialogTitle').textContent=title;$('dialogText').value=value;$('dialogBack').classList.add('show');const done=(ok)=>{$('dialogBack').classList.remove('show');$('dialogOk').onclick=null;$('dialogCancel').onclick=null;if(ok)onSubmit($('dialogText').value);};$('dialogOk').onclick=()=>done(true);$('dialogCancel').onclick=()=>done(false);$('dialogText').focus();$('dialogText').select();}
 function openTextDialog(target,field,title){showDialog(title,target[field]||'',v=>{snapshot();target[field]=v;safeSave();render();});}
