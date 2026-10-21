@@ -22,6 +22,7 @@
 .month-controls #monthCount{width:55px}.month-controls button{font-size:12px;padding:6px 9px}
 .month-controls input:disabled,.month-controls button:disabled{opacity:.48}
 .month-guide{display:flex;align-items:center;gap:9px;padding:6px 16px;background:#f5f0ff;border-bottom:1px solid #e6dafa;color:#5b418c;font-size:12px;flex-wrap:wrap}
+.text-color-palette{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:5px}.color-swatch{height:28px;min-width:0;padding:0;border:2px solid transparent;border-radius:6px;background:var(--swatch);color:#fff;font-size:15px;font-weight:700;line-height:24px}.color-swatch:hover{background:var(--swatch);border-color:#94a3b8}.color-swatch[aria-pressed="true"]{outline:2px solid #7354ba;outline-offset:2px;border-color:#fff}.color-swatch:focus-visible{outline:2px solid #172136;outline-offset:2px}
 .node-legend{display:flex;align-items:center;gap:15px;flex-wrap:wrap;padding:7px 16px;background:#fff;border-bottom:1px solid var(--border);font-size:12px;color:#59657a}.node-legend span{display:inline-flex;align-items:center;gap:5px}.legend-dot{display:inline-block;border-radius:50%;width:12px;height:12px;background:#eadcf9;border:1px solid #695779}.legend-dot.todo{width:5px;height:5px}.legend-dot.high{background:#ef4444;border-color:#b91c1c}.legend-dot.medium{background:#facc15;border-color:#a16207}.legend-dot.low{background:#22c55e;border-color:#15803d}
 .month-guide .dot{width:10px;height:10px;background:#ad8be7;border-radius:3px;display:inline-block}
 .brand-title{display:block;max-width:100%;border:0;background:transparent;padding:0;text-align:left;font-size:inherit;color:var(--ink);cursor:pointer}.brand-title:hover{background:#f7f3ff;color:var(--purple)}.brand-title::after{content:" ✎";color:var(--purple);font-size:13px}.brand-title:focus-visible{outline:2px solid var(--purple);outline-offset:4px}
@@ -284,7 +285,7 @@ function drawObjects(root){
  });
  const texts=svg('g',{},root);data.texts.forEach(t=>{
   const sel=selection?.type==='text'&&selection.id===t.id;
-  const wrap=svg('g',{cursor:editing?'move':'default'},texts);const text=linesText(wrap,t.x,t.y,t.text,t.fontSize||13,t.align||'start',{weight:t.weight||400,color:t.color||'#26334a',events:'visiblePainted'});
+  const wrap=svg('g',{'data-text-id':t.id,cursor:editing?'move':'default'},texts);const text=linesText(wrap,t.x,t.y,t.text,t.fontSize||13,t.align||'start',{weight:t.weight||400,color:t.color||'#26334a',events:'visiblePainted'});
   if(!forExportMode){wrap.addEventListener('pointerdown',ev=>startDrag(ev,'text',t.id));wrap.addEventListener('dblclick',ev=>{if(!editing)return;ev.stopPropagation();openTextDialog(t,'text','编辑文本');});}
   if(sel&&!forExportMode){try{const b=text.getBBox();svg('rect',{x:b.x-6,y:b.y-5,width:b.width+12,height:b.height+10,rx:4,fill:'none',stroke:'#9266d5','stroke-width':1.5,'stroke-dasharray':'5 3','pointer-events':'none'},wrap);}catch(e){}}
  });
@@ -472,7 +473,17 @@ function updateInspector(){
  if(selection.type==='text'){
   label('文字内容（支持多行）',it.text||'',v=>it.text=v,'textarea');
   label('字体大小（px）',it.fontSize||13,v=>it.fontSize=Math.max(8,Math.min(50,Number(v)||13)),'number');
-  label('颜色（例如 #26334a）',it.color||'#26334a',v=>it.color=v);
+  const colorLabel=document.createElement('span');colorLabel.className='formlabel';colorLabel.textContent='字体颜色';ct.append(colorLabel);
+  const palette=document.createElement('div');palette.className='text-color-palette';palette.setAttribute('role','group');palette.setAttribute('aria-label','字体颜色');
+  const colors=[['深色','#26334a'],['灰色','#64748b'],['红色','#dc2626'],['橙色','#ea580c'],['黄色','#ca8a04'],['绿色','#16a34a'],['蓝色','#2563eb'],['紫色','#7c3aed']];
+  const current=(it.color||'#26334a').toLowerCase();
+  if(!colors.some(([,color])=>color===current))colors.push(['当前自定义颜色',it.color]);
+  for(const [name,color] of colors){
+   const swatch=document.createElement('button');swatch.type='button';swatch.className='color-swatch';swatch.style.setProperty('--swatch',color);swatch.title=name;swatch.setAttribute('aria-label','字体颜色：'+name);swatch.setAttribute('aria-pressed',String(color.toLowerCase()===current));swatch.disabled=!editing;swatch.textContent=color.toLowerCase()===current?'✓':'';
+   swatch.addEventListener('click',()=>{if((it.color||'#26334a').toLowerCase()===color.toLowerCase())return;snapshot();it.color=color;safeSave();render();});palette.append(swatch);
+  }
+  ct.append(palette);
+
   const l=document.createElement('label');l.className='formlabel';l.textContent='文字对齐';const s=document.createElement('select');s.innerHTML='<option value="start">左对齐</option><option value="middle">居中</option><option value="end">右对齐</option>';s.value=it.align||'start';s.disabled=!editing;s.addEventListener('change',()=>{snapshot();it.align=s.value;safeSave();render();});ct.append(l,s);
  }
  if(selection.type==='arrow'){
