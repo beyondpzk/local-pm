@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>项目进度时间轴｜可编辑</title>
+<style>
+:root{color-scheme:light;--ink:#172136;--muted:#647086;--border:#e1e6ee;--purple:#7354ba;--purple-weak:#efe8ff;--bg:#f5f7fb;--white:#fff}
+*{box-sizing:border-box}html,body{margin:0;height:100%;font-family:Inter,-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;color:var(--ink);background:var(--bg)}
+#app{height:100vh;min-height:600px;display:flex;flex-direction:column}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;background:#fff;border-bottom:1px solid var(--border);padding:10px 18px;min-height:68px}
+.brand{display:flex;align-items:center;gap:10px;min-width:0}.brand-mark{background:#eee7ff;color:#7650b9;border-radius:12px;width:40px;height:40px;display:grid;place-items:center;font-size:21px;font-weight:800}.brand-title{font-weight:760;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.brand-sub{color:var(--muted);font-size:12px;margin-top:3px}
+.toolbar{display:flex;gap:6px;flex-wrap:wrap;align-items:center;justify-content:flex-end}button{font:inherit;border:1px solid var(--border);background:#fff;border-radius:9px;padding:9px 11px;cursor:pointer;color:#334155;font-size:13px;white-space:nowrap}button:hover{background:#f7f3ff;border-color:#cbbaf0}button.active,.primary{background:var(--purple);border-color:var(--purple);color:white}button.active:hover,.primary:hover{background:#5f42aa}button:disabled{opacity:.4;cursor:not-allowed}.divider{width:1px;background:var(--border);height:24px;margin:0 2px}
+.workspace{display:flex;min-height:0;flex:1}.leftbar{width:72px;flex-shrink:0;background:#fff;border-right:1px solid var(--border);padding:12px 8px;display:flex;flex-direction:column;gap:8px}.tool{display:flex;flex-direction:column;align-items:center;gap:3px;padding:10px 4px;font-size:11px;color:#56637a}.tool .glyph{font-size:20px;line-height:22px}.tool.active{color:#fff}
+.main{flex:1;min-width:0;display:flex;flex-direction:column}.canvas-head{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;padding:10px 16px;background:#fafbff;border-bottom:1px solid var(--border)}.canvas-title{font-size:13px;font-weight:600;color:#42516a}.hint{font-size:12px;color:#75839a}.stage-wrap{flex:1;min-height:0;position:relative;overflow:hidden;background-color:#edf0f6;background-image:radial-gradient(#cfd6e2 0.8px,transparent .8px);background-size:20px 20px}#stage{display:block;width:100%;height:100%;touch-action:none;user-select:none}#stage.grab{cursor:grab}#stage.grabbing{cursor:grabbing}#stage.mode-text,#stage.mode-node,#stage.mode-arrow{cursor:crosshair}
+.bottom{padding:8px 16px;background:#fff;border-top:1px solid var(--border);color:#708098;font-size:12px;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}.inspector{width:260px;flex-shrink:0;background:#fff;border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:auto}.inspector-header{font-size:14px;font-weight:750;padding:17px 18px;border-bottom:1px solid var(--border)}.inspect-content{padding:16px;display:flex;flex-direction:column;gap:13px}.subtle{color:#8290a3;font-size:12px;line-height:1.75}.formlabel{font-size:12px;color:#66758d;margin-bottom:5px;display:block}.field,textarea,select{width:100%;border:1px solid #d8dee9;border-radius:8px;background:#fff;color:#273449;font:inherit;font-size:13px;padding:9px;outline:none}.field:focus,textarea:focus,select:focus{border-color:#9371d0;box-shadow:0 0 0 3px #eee7fb}textarea{min-height:105px;resize:vertical;line-height:1.55}.row{display:flex;gap:8px}.row>label{flex:1;min-width:0}.small{padding:7px 9px;font-size:12px}.danger{color:#c63347;border-color:#f0c9cf}.danger:hover{background:#fff2f4;border-color:#dc9fa9}.boxhint{background:#f6f3fc;border-radius:9px;padding:10px;color:#655a81;font-size:12px;line-height:1.7}
+#toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:#253047;color:#fff;padding:10px 18px;border-radius:10px;box-shadow:0 12px 32px #18233b30;z-index:50;opacity:0;pointer-events:none;transition:opacity .2s;font-size:13px}#toast.show{opacity:1}
+.dialog-backdrop{position:fixed;inset:0;background:#101c32aa;z-index:100;display:none;align-items:center;justify-content:center;padding:20px}.dialog-backdrop.show{display:flex}.dialog{background:white;border-radius:14px;padding:22px;width:410px;max-width:100%;box-shadow:0 18px 70px #15203855}.dialog h3{margin:0 0 9px}.dialog p{color:#748094;font-size:13px}.dialog-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:14px}
+#editMode{font-weight:700}.only-edit[disabled]{opacity:.35}@media(max-width:1100px){.inspector{width:222px}.topbar{padding:9px}.brand-sub{display:none}.toolbar button{padding:7px 9px}}@media(max-width:760px){.topbar{align-items:flex-start;flex-direction:column}.toolbar{justify-content:flex-start}.leftbar{width:57px}.tool{font-size:10px}.tool .glyph{font-size:17px}.inspector{position:absolute;right:0;top:120px;bottom:30px;z-index:3;box-shadow:-5px 0 18px #1720361a;display:none}.inspector.show{display:flex}.main{width:100%}}
+</style>
+</head>
+<body>
+<div id="app">
+  <header class="topbar">
+    <div class="brand"><div class="brand-mark">↗</div><div><div class="brand-title" id="brandTitle">项目里程碑进度图</div><div class="brand-sub">一个文件即可查看 · 无需安装 · 编辑数据保存在本机</div></div></div>
+    <div class="toolbar">
+      <button id="editMode" class="primary" title="查看者默认不能误拖动，点击进入编辑模式">✎ 进入编辑</button>
+      <button id="undo" title="撤销 Ctrl/⌘+Z" disabled>↶ 撤销</button>
+      <button id="redo" title="重做 Ctrl/⌘+Shift+Z" disabled>↷ 重做</button>
+      <span class="divider"></span>
+      <button id="fit" title="适配全部内容">适配</button><button id="zoomOut">−</button><button id="zoomIn">＋</button>
+      <span class="divider"></span>
+      <button id="saveJson" title="保存完整编辑数据为JSON">保存项目</button><button id="openJson" title="打开项目JSON">打开项目</button>
+      <button id="exportSvg" title="导出无损矢量图片">导出 SVG</button><button id="exportPng" title="导出高清图片">导出 PNG</button>
+      <button id="reset" title="恢复示例图">重置示例</button>
+    </div>
+  </header>
+  <div class="workspace">
+    <aside class="leftbar" id="tools">
+      <button class="tool active" data-tool="select" title="选择后拖动；双击文字编辑"><span class="glyph">↖</span>选择</button>
+      <button class="tool only-edit" data-tool="node" title="在画布任意位置点击添加里程碑"><span class="glyph">◉</span>节点</button>
+      <button class="tool only-edit" data-tool="text" title="在画布任意位置点击添加文字"><span class="glyph">Ｔ</span>文字</button>
+      <button class="tool only-edit" data-tool="arrow" title="点击起点，再点击终点添加箭头"><span class="glyph">↗</span>箭头</button>
+      <button class="tool" data-tool="hand" title="拖动画布"><span class="glyph">✥</span>平移</button>
+      <div style="flex:1"></div>
+      <button class="tool only-edit" id="addLane" title="新增工作泳道"><span class="glyph">☰＋</span>泳道</button>
+    </aside>
+    <main class="main">
+      <div class="canvas-head"><span class="canvas-title">2026 年 · 6—9 月 · 多泳道项目进度</span><span class="hint" id="modeHint">查看模式：拖动工具可平移画布，滚轮缩放</span></div>
+      <div class="stage-wrap"><svg id="stage" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1460 960" aria-label="交互式项目时间轴"></svg></div>
+      <div class="bottom"><span id="status">示例数据 · 鼠标滚轮缩放 · 点击「进入编辑」开始修改</span><span id="zoomStatus">100%</span></div>
+    </main>
+    <aside class="inspector" id="inspector"><div class="inspector-header">属性编辑 <button class="small" id="closeInspector" style="float:right;display:none">关闭</button></div><div class="inspect-content" id="inspectContent"></div></aside>
+  </div>
+</div>
+<input type="file" id="fileInput" accept=".json,application/json" hidden />
+<div class="dialog-backdrop" id="dialogBack"><div class="dialog"><h3 id="dialogTitle">编辑文字</h3><p id="dialogInfo">修改后点击确定。</p><textarea id="dialogText" rows="6"></textarea><div class="dialog-actions"><button id="dialogCancel">取消</button><button id="dialogOk" class="primary">确定</button></div></div></div>
+<div id="toast"></div>
+<script>
+(()=>{'use strict';
+const NS='http://www.w3.org/2000/svg';
+const $=(id)=>document.getElementById(id);
+const clone=(x)=>JSON.parse(JSON.stringify(x));
+const uid=(prefix)=>prefix+'_'+Math.random().toString(36).slice(2,10);
+const monthStart=230,monthW=273;
+const makeExample=()=>({version:1,title:'具身智能导航研发项目里程碑',year:2026,view:{w:1460,h:960},
+ lanes:[{id:'base',name:'基建',y:278},{id:'model',name:'模型',y:444},{id:'deploy',name:'部署',y:602},{id:'test',name:'测试',y:754},{id:'device',name:'平台与设备',y:894}],
+ nodes:[
+ {id:'n1',x:640,y:278,title:'7.15 数据标注及训练样本'},{id:'n2',x:660,y:278,title:'7.15 训练数据准备'},{id:'n3',x:921,y:278,title:'8.15 新场景数据准备'},{id:'n4',x:1055,y:278,title:'8.30 Orin 真机 POC'},{id:'n5',x:1319,y:278,title:'9.30 Demo 验证'},
+ {id:'n6',x:493,y:444,title:'6.30 VLA 骨干研发到位'},{id:'n7',x:814,y:444,title:'7.30 模型训练、自测'},{id:'n8',x:951,y:444,title:'8.15 Orin NX 部署'},
+ {id:'n9',x:512,y:602,title:'6.30 Orin 初步调通'},{id:'n10',x:512,y:754,title:'6.30 测试仿真可视化'},{id:'n11',x:640,y:894,title:'7.15 设备与平台准备'}],
+ texts:[
+ {id:'t1',x:610,y:66,text:'采集端需求提出、团队协同\n开始采集并标注\n持续推进数据准备',fontSize:13,align:'middle',weight:500},
+ {id:'t2',x:1030,y:79,text:'8.30 真机 POC 验证完成（Orin）\n纯视觉跟踪：无回溯 / 待确认',fontSize:13,align:'middle',weight:500},
+ {id:'t3',x:1275,y:88,text:'9.30 Demo：在前期验证基础上\n进一步积累测试数据',fontSize:13,align:'middle',weight:500},
+ {id:'t4',x:300,y:315,text:'1. 数据平台建设，数据流水线准备\n2. 训练、数据链路与设备打通\n3. 完成采集与数据检查',fontSize:13,align:'start'},
+ {id:'t5',x:623,y:333,text:'7.15 至少准备一批训练数据\n覆盖不同场景、标签信息\n同步开展初步训练与评估',fontSize:12,align:'start'},
+ {id:'t6',x:926,y:338,text:'新增场景的\n数据标注与入库',fontSize:12,align:'start'},
+ {id:'t7',x:490,y:501,text:'6.30 至少一名 VLA 骨干研发\n到位，并开始搭建训练框架',fontSize:13,align:'middle'},
+ {id:'t8',x:813,y:504,text:'7.30 走通模型训练与 Python 自测\n模型初步收敛，效果待验证',fontSize:12,align:'middle'},
+ {id:'t9',x:965,y:506,text:'8.15 在 Orin NX 上\n部署并实现推理',fontSize:12,align:'start'},
+ {id:'t10',x:512,y:667,text:'使用公开模型\n在 Orin 上调通',fontSize:13,align:'middle'},
+ {id:'t11',x:515,y:793,text:'6.30 跑通仿真\n可视化链路',fontSize:13,align:'middle'},
+ {id:'t12',x:653,y:936,text:'7.15 能在平台上发起多卡训练\n设备与平台调通',fontSize:12,align:'start'}],
+ arrows:[
+ {id:'a1',points:[{x:640,y:133},{x:640,y:197},{x:660,y:197},{x:660,y:264}]},
+ {id:'a2',points:[{x:1055,y:137},{x:1055,y:265}]},
+ {id:'a3',points:[{x:1292,y:135},{x:1342,y:135},{x:1342,y:193},{x:1319,y:193},{x:1319,y:265}]},
+ {id:'a4',points:[{x:640,y:330},{x:640,y:310},{x:632,y:310},{x:632,y:289}]},
+ {id:'a5',points:[{x:955,y:336},{x:955,y:315},{x:921,y:315},{x:921,y:290}]},
+ {id:'a6',points:[{x:494,y:496},{x:494,y:458}]},
+ {id:'a7',points:[{x:813,y:497},{x:813,y:458}]},
+ {id:'a8',points:[{x:967,y:499},{x:967,y:475},{x:951,y:475},{x:951,y:458}]},
+ {id:'a9',points:[{x:512,y:662},{x:535,y:662},{x:535,y:631},{x:512,y:631},{x:512,y:615}]}]
+});
+const storageKey='project-timeline-standalone-v1';
+let data=makeExample();try{const saved=localStorage.getItem(storageKey);if(saved){const parsed=JSON.parse(saved);if(valid(parsed))data=parsed;}}catch(e){}
+let editing=false, tool='select',selection=null,selectedHandle=-1,drag=null,arrowStart=null,history=[],future=[],view={x:0,y:0,w:1460,h:960},toastTimer=null;
+const stage=$('stage');
+function valid(d){return d&&Array.isArray(d.lanes)&&Array.isArray(d.nodes)&&Array.isArray(d.texts)&&Array.isArray(d.arrows)&&d.nodes.every(n=>Number.isFinite(n.x)&&Number.isFinite(n.y))&&d.arrows.every(a=>Array.isArray(a.points));}
+function safeSave(){try{localStorage.setItem(storageKey,JSON.stringify(data));}catch(e){}}
+function snapshot(){history.push(JSON.stringify(data));if(history.length>60)history.shift();future=[];updateHistory();}
+function updateHistory(){$('undo').disabled=!editing||!history.length;$('redo').disabled=!editing||!future.length;}
+function undo(){if(!history.length)return;future.push(JSON.stringify(data));data=JSON.parse(history.pop());selection=null;render();updateHistory();safeSave()}
+function redo(){if(!future.length)return;history.push(JSON.stringify(data));data=JSON.parse(future.pop());selection=null;render();updateHistory();safeSave()}
+function obj(type,id){const list=type==='node'?data.nodes:type==='text'?data.texts:data.arrows;return list.find(x=>x.id===id)}
+function svg(tag,attrs={},parent=stage){const e=document.createElementNS(NS,tag);Object.entries(attrs).forEach(([k,v])=>e.setAttribute(k,String(v)));parent.appendChild(e);return e;}
+function linesText(container,x,y,str,size=13,anchor='start',opts={}){const t=svg('text',{x,y,fill:opts.color||'#26334a','font-size':size,'text-anchor':anchor,'font-weight':opts.weight||400,'font-family':'Inter, PingFang SC, Microsoft YaHei, sans-serif','pointer-events':opts.events||'none'},container);String(str).split('\n').forEach((line,i)=>{const a=svg('tspan',{x,dy:i===0?0:Math.round(size*1.48)},t);a.textContent=line;});return t;}
+function renderBase(root,forExport=false){
+ svg('rect',{x:25,y:15,width:data.view?.w?data.view.w-50:1410,height:Math.max((data.view?.h||960)-30,850),rx:12,fill:'#fff',stroke:'#e7e5eb','stroke-width':1},root);
+ linesText(root,80,69,data.title||'项目里程碑进度图',27,'start',{weight:700,color:'#1d2435'});
+ linesText(root,81,94,(data.year||2026)+' 年 6—9 月 · 项目进度与关键里程碑',13,'start',{color:'#788299'});
+ const b=svg('g',{},root);for(let i=0;i<4;i++){
+  svg('rect',{x:monthStart+i*monthW,y:168,width:monthW,height:37,fill:i%2?'#eae0f8':'#f2eaff',stroke:'#84749d','stroke-width':1.1},b);
+  linesText(b,monthStart+i*monthW+monthW/2,193,['6 月','7 月','8 月','9 月'][i],17,'middle',{weight:650,color:'#2e243c'});
+ }
+ for(let i=0;i<=4;i++){const xx=monthStart+i*monthW;svg('line',{x1:xx,x2:xx,y1:207,y2:Math.max(910,(data.lanes.at(-1)?.y||894)+20),stroke:'#f0eef4','stroke-width':1,'stroke-dasharray':'4 8'},b)}
+ data.lanes.forEach((l,i)=>{
+  const yy=l.y;
+  svg('line',{x1:monthStart,x2:1322,y1:yy,y2:yy,stroke:'#49444c','stroke-width':1.7},b);
+  if(i%2===1)svg('line',{x1:monthStart,x2:1322,y1:yy+1,y2:yy+1,stroke:'#fff','stroke-width':.6,opacity:.5},b);
+  const name=l.name==='平台与设备'?'平台与\n设备':l.name;
+  linesText(b,86,yy-3,name,17,'start',{weight:650,color:'#2d3037'});
+ });
+}
+function drawArrow(group,a,isSel=false){const pts=a.points;if(pts.length<2)return;
+ const d=pts.map((p,i)=>(i?'L':'M')+' '+p.x+' '+p.y).join(' ');
+ const g=svg('g',{},group);
+ svg('path',{d,fill:'none',stroke:isSel?'#8c5bd2':'#252328','stroke-width':isSel?2.7:1.85,'stroke-linecap':'round','stroke-linejoin':'round','marker-end':'url(#head)','pointer-events':'none'},g);
+ if(!forExportMode){const hit=svg('path',{d,stroke:'transparent','stroke-width':20,fill:'none',cursor:editing?'move':'default'},g);
+  hit.addEventListener('pointerdown',ev=>startDrag(ev,'arrow',a.id));hit.addEventListener('dblclick',ev=>{if(!editing)return;ev.stopPropagation();insertArrowBend(a,point(ev));});}
+}
+let forExportMode=false;
+function drawObjects(root){
+ const arrows=svg('g',{},root);data.arrows.forEach(a=>drawArrow(arrows,a,selection?.type==='arrow'&&selection.id===a.id));
+ const nodes=svg('g',{},root);data.nodes.forEach(n=>{
+  const sel=selection?.type==='node'&&selection.id===n.id;
+  const circle=svg('circle',{cx:n.x,cy:n.y,r:sel?10:8.8,fill:sel?'#d3b7ff':'#eadcf9',stroke:sel?'#5c389c':'#261f30','stroke-width':sel?2.6:1.6,cursor:editing?'move':'default'},nodes);
+  const ti=svg('title',{},circle);ti.textContent=n.title||'里程碑';
+  if(!forExportMode){circle.addEventListener('pointerdown',ev=>startDrag(ev,'node',n.id));circle.addEventListener('dblclick',ev=>{if(!editing)return;ev.stopPropagation();openTextDialog(n,'title','修改里程碑标题');});}
+ });
+ const texts=svg('g',{},root);data.texts.forEach(t=>{
+  const sel=selection?.type==='text'&&selection.id===t.id;
+  const wrap=svg('g',{cursor:editing?'move':'default'},texts);const text=linesText(wrap,t.x,t.y,t.text,t.fontSize||13,t.align||'start',{weight:t.weight||400,color:t.color||'#26334a',events:'visiblePainted'});
+  if(!forExportMode){wrap.addEventListener('pointerdown',ev=>startDrag(ev,'text',t.id));wrap.addEventListener('dblclick',ev=>{if(!editing)return;ev.stopPropagation();openTextDialog(t,'text','编辑文本');});}
+  if(sel&&!forExportMode){try{const b=text.getBBox();svg('rect',{x:b.x-6,y:b.y-5,width:b.width+12,height:b.height+10,rx:4,fill:'none',stroke:'#9266d5','stroke-width':1.5,'stroke-dasharray':'5 3','pointer-events':'none'},wrap);}catch(e){}}
+ });
+ if(selection?.type==='arrow'&&editing&&!forExportMode){const a=obj('arrow',selection.id);if(a)a.points.forEach((p,i)=>{
+  const c=svg('rect',{x:p.x-6,y:p.y-6,width:12,height:12,rx:3,fill:selectedHandle===i?'#8056ce':'#fff',stroke:'#845bc5','stroke-width':2,cursor:'crosshair'},root);
+  c.addEventListener('pointerdown',ev=>startHandleDrag(ev,a.id,i));
+ });}
+}
+function markerDefs(root){const defs=svg('defs',{},root);const m=svg('marker',{id:'head',markerWidth:9,markerHeight:9,refX:7,refY:3.5,orient:'auto',markerUnits:'userSpaceOnUse',viewBox:'0 0 7 7'},defs);svg('path',{d:'M0,0 L7,3.5 L0,7 Z',fill:'#252328'},m);}
+function render(){stage.replaceChildren();stage.setAttribute('viewBox',[view.x,view.y,view.w,view.h].join(' '));markerDefs(stage);renderBase(stage);drawObjects(stage);$('brandTitle').textContent=data.title||'项目里程碑进度图';updateInspector();$('zoomStatus').textContent=Math.round(1460/view.w*100)+'%';}
+function point(ev){const pt=stage.createSVGPoint();pt.x=ev.clientX;pt.y=ev.clientY;return pt.matrixTransform(stage.getScreenCTM().inverse());}
+function setTool(t){tool=t;arrowStart=null;document.querySelectorAll('[data-tool]').forEach(b=>b.classList.toggle('active',b.dataset.tool===t));stage.className=t==='hand'?'grab':t==='node'||t==='text'||t==='arrow'?'mode-'+t:'';$('modeHint').textContent=!editing?'查看模式：使用平移工具移动、滚轮缩放':({select:'选择并拖动对象 · 双击文字编辑 · Delete 删除',node:'点击空白位置，放置可拖动的里程碑节点',text:'点击空白位置，添加自由文字',arrow:'点击起点，再点击终点；选中后拖动线段与端点',hand:'拖动画布 · 滚轮缩放'})[t];if(t!=='select')selection=null;render();}
+function setEditing(v){editing=v;$('editMode').textContent=editing?'✓ 完成编辑':'✎ 进入编辑';$('editMode').classList.toggle('active',editing);document.querySelectorAll('.only-edit').forEach(el=>el.disabled=!editing);if(!editing){selection=null;setTool('hand');}else setTool('select');$('status').textContent=editing?'编辑模式 · 拖动节点/文字/箭头 · 双击文字修改 · 保存项目 JSON 可共享编辑版本':'查看模式 · 单 HTML 文件可直接打开 · 无需联网';updateHistory();}
+function targetFromPoint(pos){return data.nodes.find(n=>Math.hypot(n.x-pos.x,n.y-pos.y)<16)}
+function startDrag(ev,type,id){ev.stopPropagation();if(!editing||tool!=='select'){if(editing&&tool==='arrow'){onCanvasTap(point(ev));}return;}const p=point(ev);selection={type,id};selectedHandle=-1;snapshot();drag={mode:'object',type,id,start:p,origin:clone(obj(type,id))};stage.setPointerCapture(ev.pointerId);render();}
+function startHandleDrag(ev,id,index){ev.stopPropagation();if(!editing)return;selection={type:'arrow',id};selectedHandle=index;snapshot();drag={mode:'handle',id,index};stage.setPointerCapture(ev.pointerId);render();}
+function onCanvasTap(p){if(tool==='node'){
+ snapshot();const name='新里程碑';const n={id:uid('n'),x:Math.round(p.x),y:Math.round(p.y),title:name};data.nodes.push(n);selection={type:'node',id:n.id};setTool('select');selection={type:'node',id:n.id};render();safeSave();toast('已添加节点，可拖动或在右侧修改');
+ }else if(tool==='text'){
+ snapshot();const t={id:uid('t'),x:Math.round(p.x),y:Math.round(p.y),text:'双击修改文字',fontSize:14,align:'start'};data.texts.push(t);setTool('select');selection={type:'text',id:t.id};render();safeSave();openTextDialog(t,'text','输入文字');
+ }else if(tool==='arrow'){
+  if(!arrowStart){arrowStart=p;toast('已确定起点，请点击箭头终点');}
+  else{snapshot();const from=arrowStart,to=p;const snapped=targetFromPoint(to);const last=snapped?{x:snapped.x,y:snapped.y,nodeId:snapped.id}:{x:to.x,y:to.y};const pts=Math.abs(from.x-to.x)<25?[{x:from.x,y:from.y},last]:[{x:from.x,y:from.y},{x:from.x,y:to.y},last];const a={id:uid('a'),points:pts};data.arrows.push(a);arrowStart=null;setTool('select');selection={type:'arrow',id:a.id};render();safeSave();toast('箭头已添加；选择箭头后拖动端点或折点');}
+ }}
+stage.addEventListener('pointerdown',ev=>{if(ev.button!==0&&ev.button!==1)return;const p=point(ev);
+ if((tool==='hand'||ev.button===1)&&!drag){drag={mode:'pan',pos:{x:ev.clientX,y:ev.clientY},v:clone(view)};stage.setPointerCapture(ev.pointerId);stage.classList.add('grabbing');return;}
+ if(editing&&(tool==='node'||tool==='text'||tool==='arrow')){onCanvasTap(p);return;}
+ if(tool==='select'){selection=null;render();}
+});
+stage.addEventListener('pointermove',ev=>{if(!drag)return;const p=point(ev);
+ if(drag.mode==='pan'){
+  const rect=stage.getBoundingClientRect(),dx=(ev.clientX-drag.pos.x)*view.w/rect.width,dy=(ev.clientY-drag.pos.y)*view.h/rect.height;
+  view.x=drag.v.x-dx;view.y=drag.v.y-dy;stage.setAttribute('viewBox',[view.x,view.y,view.w,view.h].join(' '));return;
+ }
+ if(drag.mode==='object'){
+  const it=obj(drag.type,drag.id);if(!it)return;
+  const dx=p.x-drag.start.x,dy=p.y-drag.start.y;
+  if(drag.type==='arrow')it.points=drag.origin.points.map(q=>({x:q.x+dx,y:q.y+dy}));
+  else{it.x=Math.round(drag.origin.x+dx);it.y=Math.round(drag.origin.y+dy);if(drag.type==='node'){data.arrows.forEach(a=>a.points.forEach(pt=>{if(pt.nodeId===it.id){pt.x=it.x;pt.y=it.y;}}));}}
+  render();
+ }else if(drag.mode==='handle'){
+  const a=obj('arrow',drag.id);if(!a)return;const pt=a.points[drag.index];pt.x=Math.round(p.x);pt.y=Math.round(p.y);delete pt.nodeId;render();
+ }
+});
+function pointerRelease(ev){if(!drag)return;if(drag.mode==='handle'){
+ const a=obj('arrow',drag.id);if(a){const pt=a.points[drag.index],node=targetFromPoint(pt);if(node){pt.x=node.x;pt.y=node.y;pt.nodeId=node.id;}}
+ }if(drag.mode==='object'||drag.mode==='handle')safeSave();drag=null;stage.classList.remove('grabbing');render();}
+stage.addEventListener('pointerup',pointerRelease);stage.addEventListener('pointercancel',pointerRelease);
+function distSegment(p,a,b){const dx=b.x-a.x,dy=b.y-a.y;const t=Math.max(0,Math.min(1,((p.x-a.x)*dx+(p.y-a.y)*dy)/(dx*dx+dy*dy||1)));return Math.hypot(p.x-(a.x+t*dx),p.y-(a.y+t*dy));}
+function insertArrowBend(a,p){let best=Infinity,ix=1;for(let i=0;i<a.points.length-1;i++){const d=distSegment(p,a.points[i],a.points[i+1]);if(d<best){best=d;ix=i+1;}}snapshot();a.points.splice(ix,0,{x:Math.round(p.x),y:Math.round(p.y)});selection={type:'arrow',id:a.id};selectedHandle=ix;safeSave();render();toast('已添加折点，拖动小方块调整');}
+function updateInspector(){
+ const ct=$('inspectContent');ct.replaceChildren();
+ const desc=(content)=>{const d=document.createElement('div');d.className='subtle';d.textContent=content;ct.appendChild(d);};
+ const label=(title,val,callback,kind='text')=>{const l=document.createElement('label');const t=document.createElement('span');t.className='formlabel';t.textContent=title;l.appendChild(t);const inp=kind==='textarea'?document.createElement('textarea'):document.createElement('input');inp.className=kind==='textarea'?'':'field';if(kind!=='textarea')inp.type=kind;inp.value=val??'';inp.disabled=!editing;inp.addEventListener('focus',()=>{if(editing)snapshot();});inp.addEventListener('input',()=>{callback(inp.value);safeSave();renderVisualOnly();});inp.addEventListener('change',()=>render());l.appendChild(inp);ct.appendChild(l);return inp;};
+ function action(name,callback,cls=''){const b=document.createElement('button');b.textContent=name;b.className=cls;b.disabled=!editing;b.addEventListener('click',callback);ct.appendChild(b);}
+ if(!selection){desc(editing?'选择图上的节点、文字或箭头后，可在这里修改内容。':'这是一个独立的 HTML 文件。进入编辑模式后，可以添加、拖动和修改所有里程碑对象。');
+ label('项目标题',data.title||'',v=>data.title=v);
+ label('年份',data.year||2026,v=>data.year=parseInt(v,10)||2026,'number');
+ const h=document.createElement('div');h.className='boxhint';h.textContent='分享给同事：直接发送这个 HTML 即可查看。编辑后的内容请点击「保存项目」，将 JSON 发给同事加载；本地改动不会自动同步到其他人的文件。';ct.appendChild(h);
+ desc('提示：Markdown 平台支持 iframe 时，可直接嵌入；普通 Markdown 则可以链接此 HTML 或引用导出的 SVG。');
+ return;}
+ const it=obj(selection.type,selection.id);if(!it){selection=null;return;}
+ desc('当前选中：'+({node:'里程碑节点',text:'自由文字',arrow:'可拖动箭头'})[selection.type]);
+ if(selection.type==='node')label('节点说明（鼠标悬浮可看）',it.title||'',v=>it.title=v);
+ if(selection.type==='text'){
+  label('文字内容（支持多行）',it.text||'',v=>it.text=v,'textarea');
+  label('字体大小（px）',it.fontSize||13,v=>it.fontSize=Math.max(8,Math.min(50,Number(v)||13)),'number');
+  label('颜色（例如 #26334a）',it.color||'#26334a',v=>it.color=v);
+  const l=document.createElement('label');l.className='formlabel';l.textContent='文字对齐';const s=document.createElement('select');s.innerHTML='<option value="start">左对齐</option><option value="middle">居中</option><option value="end">右对齐</option>';s.value=it.align||'start';s.disabled=!editing;s.addEventListener('change',()=>{snapshot();it.align=s.value;safeSave();render();});ct.append(l,s);
+ }
+ if(selection.type==='arrow'){
+  desc('拖动折线本身可整体移动；小方块可单独拖动端点与折点。双击折线任意位置可添加折点。');
+  action('＋ 添加折点',()=>{snapshot();let i=Math.floor(it.points.length/2),a=it.points[Math.max(0,i-1)],b=it.points[i];it.points.splice(i,0,{x:(a.x+b.x)/2,y:(a.y+b.y)/2});safeSave();render();});
+  action('− 移除选中折点',()=>{if(selectedHandle<0||it.points.length<=2)return; snapshot();it.points.splice(selectedHandle,1);selectedHandle=-1;safeSave();render();});
+ }else{
+  const rr=document.createElement('div');rr.className='row';ct.appendChild(rr);
+  for(const axis of ['x','y']){const l=document.createElement('label');l.innerHTML='<span class="formlabel">'+axis.toUpperCase()+' 坐标</span>';const inp=document.createElement('input');inp.className='field';inp.type='number';inp.value=Math.round(it[axis]);inp.disabled=!editing;inp.addEventListener('change',()=>{snapshot();const old=it[axis];it[axis]=Number(inp.value)||0;if(selection.type==='node')data.arrows.forEach(a=>a.points.forEach(p=>{if(p.nodeId===it.id)p[axis]=it[axis];}));safeSave();render();});l.append(inp);rr.append(l);}
+ }
+ action('删除选中的对象',()=>{deleteSelected();},'danger');
+}
+// Update canvas without destroying an actively edited property input.
+function renderVisualOnly(){stage.replaceChildren();markerDefs(stage);renderBase(stage);drawObjects(stage);$('brandTitle').textContent=data.title||'项目里程碑进度图';}
+function deleteSelected(){if(!selection||!editing)return;snapshot();const arr=selection.type==='node'?data.nodes:selection.type==='text'?data.texts:data.arrows;
+ const ix=arr.findIndex(o=>o.id===selection.id);if(ix>=0)arr.splice(ix,1);if(selection.type==='node')data.arrows.forEach(a=>a.points.forEach(p=>{if(p.nodeId===selection.id)delete p.nodeId;}));selection=null;render();safeSave();toast('已删除');}
+function showDialog(title,value,onSubmit){$('dialogTitle').textContent=title;$('dialogText').value=value;$('dialogBack').classList.add('show');const done=(ok)=>{$('dialogBack').classList.remove('show');$('dialogOk').onclick=null;$('dialogCancel').onclick=null;if(ok)onSubmit($('dialogText').value);};$('dialogOk').onclick=()=>done(true);$('dialogCancel').onclick=()=>done(false);$('dialogText').focus();$('dialogText').select();}
+function openTextDialog(target,field,title){showDialog(title,target[field]||'',v=>{snapshot();target[field]=v;safeSave();render();});}
+function toast(msg){const t=$('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),2600);}
+function fit(){const w=data.view?.w||1460,h=data.view?.h||960;view={x:0,y:0,w,h};render();}
+function zoom(factor,where){const oldW=view.w,oldH=view.h;const newW=Math.max(390,Math.min(5000,oldW*factor)),newH=oldH*newW/oldW;let px=where?.x??(view.x+oldW/2),py=where?.y??(view.y+oldH/2);const rx=(px-view.x)/oldW,ry=(py-view.y)/oldH;view={x:px-rx*newW,y:py-ry*newH,w:newW,h:newH};render();}
+stage.addEventListener('wheel',ev=>{ev.preventDefault();zoom(ev.deltaY>0?1.08:1/1.08,point(ev));},{passive:false});
+$('editMode').onclick=()=>setEditing(!editing);
+$('undo').onclick=undo;$('redo').onclick=redo;
+$('fit').onclick=fit;$('zoomIn').onclick=()=>zoom(.85);$('zoomOut').onclick=()=>zoom(1.15);
+document.querySelectorAll('[data-tool]').forEach(b=>b.addEventListener('click',()=>{if(!editing&&b.dataset.tool!=='hand')return;setTool(b.dataset.tool);}));
+$('addLane').onclick=()=>{if(!editing)return;const name=prompt('请输入新工作线名称（例如：安全、硬件、算法）：');if(!name||!name.trim())return;snapshot();const prev=data.lanes.at(-1)?.y||894;const y=prev+144;data.lanes.push({id:uid('lane'),name:name.trim(),y});data.view.h=Math.max(data.view.h,y+85);safeSave();fit();toast('泳道已添加');};
+$('closeInspector').onclick=()=>$('inspector').classList.remove('show');
+$('saveJson').onclick=()=>{downloadFile((data.title||'项目进度图')+'.json',JSON.stringify(data,null,2),'application/json;charset=utf-8');toast('已保存项目 JSON，可用于下次继续编辑');};
+$('openJson').onclick=()=>$('fileInput').click();$('fileInput').addEventListener('change',async ev=>{const file=ev.target.files[0];if(!file)return;try{const d=JSON.parse(await file.text());if(!valid(d))throw new Error('缺少所需数据字段');data=d;snapshot();selection=null;data.view=data.view||{w:1460,h:960};safeSave();fit();toast('项目已载入');}catch(e){alert('无法打开文件：'+e.message);}ev.target.value='';});
+$('reset').onclick=()=>{if(!confirm('要恢复初始示例吗？当前修改会被替换。建议先保存项目 JSON。'))return;snapshot();data=makeExample();selection=null;safeSave();fit();toast('已恢复示例图');};
+function downloadFile(name,content,mime){const blob=content instanceof Blob?content:new Blob([content],{type:mime});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),600);}
+function exportSvgString(){const node=document.createElementNS(NS,'svg');node.setAttribute('xmlns',NS);node.setAttribute('width',data.view.w);node.setAttribute('height',data.view.h);node.setAttribute('viewBox',`0 0 ${data.view.w} ${data.view.h}`);node.setAttribute('style','background:white');markerDefs(node);forExportMode=true;const keep=selection;selection=null;renderBase(node,true);drawObjects(node);selection=keep;forExportMode=false;return new XMLSerializer().serializeToString(node);}
+$('exportSvg').onclick=()=>{downloadFile((data.title||'项目进度图')+'.svg',exportSvgString(),'image/svg+xml;charset=utf-8');toast('SVG 矢量图已导出');};
+$('exportPng').onclick=()=>{const url=URL.createObjectURL(new Blob([exportSvgString()],{type:'image/svg+xml;charset=utf-8'}));const img=new Image();img.onload=()=>{const scale=2;const c=document.createElement('canvas');c.width=data.view.w*scale;c.height=data.view.h*scale;const ctx=c.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,c.width,c.height);ctx.drawImage(img,0,0,c.width,c.height);c.toBlob(blob=>{if(blob)downloadFile((data.title||'项目进度图')+'.png',blob,'image/png');URL.revokeObjectURL(url);toast('高清 PNG 已导出');},'image/png');};img.onerror=()=>{URL.revokeObjectURL(url);alert('PNG 导出失败，请改用 SVG。');};img.src=url;};
+document.addEventListener('keydown',ev=>{
+ if($('dialogBack').classList.contains('show')){if(ev.key==='Escape')$('dialogCancel').click();return;}
+ if(['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName))return;
+ if((ev.metaKey||ev.ctrlKey)&&ev.key.toLowerCase()==='z'){ev.preventDefault();if(editing)(ev.shiftKey?redo:undo)();}
+ if((ev.key==='Delete'||ev.key==='Backspace')&&editing&&selection){ev.preventDefault();deleteSelected();}
+ if(ev.key==='Escape'){selection=null;arrowStart=null;setTool(editing?'select':'hand');}
+ });
+window.addEventListener('resize',()=>render());
+setEditing(false);fit();
+})();
+</script>
+</body>
+</html>
