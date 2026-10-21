@@ -40,6 +40,13 @@ async function api(method, url, body) {
   return data;
 }
 
+function handleAsync(fn) {
+  return async (...args) => {
+    try { await fn(...args); }
+    catch (error) { alert('操作失败：' + error.message); }
+  };
+}
+
 async function loadProjects() {
   const data = await api('GET', API);
   projects = data.projects || [];
@@ -72,6 +79,19 @@ function formatDate(iso) {
     hour: '2-digit',
     minute: '2-digit',
   });
+}
+
+function formatRelative(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  const days = Math.floor((Date.now() - d.getTime()) / 86400000);
+  if (days <= 0) return '今天';
+  if (days === 1) return '昨天';
+  if (days < 30) return `${days} 天前`;
+  const months = Math.floor(days / 30);
+  if (months < 12) return `${months} 个月前`;
+  return `${Math.floor(months / 12)} 年前`;
 }
 
 function matchesFilter(project, text) {
@@ -126,9 +146,6 @@ function projectCard(project) {
   card.dataset.id = project.id;
 
   const doneCount = project.tasks.filter(t => t.done).length;
-  const taskSummary = project.tasks.length
-    ? `<span class="badge">${doneCount}/${project.tasks.length} 任务</span>`
-    : '<span class="badge">无任务</span>';
 
   const sortedTasks = [...project.tasks].sort((a, b) => {
     if (a.done !== b.done) return a.done ? 1 : -1;
@@ -151,11 +168,8 @@ function projectCard(project) {
     </div>
     ${project.description ? `<p class="card-desc">${escapeHtml(project.description)}</p>` : ''}
     <div class="card-meta">
-      <span class="badge ${project.status}">${statusLabel(project.status)}</span>
-      ${taskSummary}
-    </div>
-    <div class="card-dates">
-      创建于 ${formatDate(project.createdAt)} · 更新于 ${formatDate(project.updatedAt)}
+      <span class="badge ${escapeHtml(project.status)}">${escapeHtml(statusLabel(project.status))}</span>
+      <span class="card-updated" title="创建于 ${escapeHtml(formatDate(project.createdAt))} · 更新于 ${escapeHtml(formatDate(project.updatedAt))}">${escapeHtml(formatRelative(project.updatedAt))}更新</span>
     </div>
     <div class="task-section ${isCollapsed ? 'collapsed' : ''}">
       <div class="task-section-header">
@@ -166,13 +180,7 @@ function projectCard(project) {
         ${sortedTasks.map(t => taskHtml(t)).join('')}
       </ul>
       <div class="add-task">
-        <input type="text" class="new-task-title" placeholder="添加新任务…">
-        <select class="new-task-priority">
-          <option value="high">高</option>
-          <option value="medium" selected>中</option>
-          <option value="low">低</option>
-        </select>
-        <button class="btn primary small" data-action="add-task">添加</button>
+        <input type="text" class="new-task-title" placeholder="+ 添加任务，回车确认">
       </div>
     </div>
   `;
@@ -181,11 +189,15 @@ function projectCard(project) {
 
 function taskHtml(task) {
   return `
-    <li class="task-item ${task.done ? 'done' : ''}" data-task-id="${task.id}">
+    <li class="task-item ${task.done ? 'done' : ''}" data-task-id="${escapeHtml(task.id)}">
       <input type="checkbox" class="task-done" ${task.done ? 'checked' : ''}>
-      <span class="task-title" contenteditable="true">${escapeHtml(task.title)}</span>
-      <span class="task-date">${formatDate(task.createdAt)}</span>
-      <span class="badge priority-${task.priority}" data-action="cycle-priority">${priorityLabel(task.priority)}</span>
+      <div class="task-main">
+        <span class="task-title" contenteditable="true" title="点击编辑，Enter 保存">${escapeHtml(task.title)}</span>
+        <div class="task-sub">
+          <span class="badge priority-${escapeHtml(task.priority)}" data-action="cycle-priority" title="点击切换优先级">${escapeHtml(priorityLabel(task.priority))}</span>
+          <span class="task-date">${escapeHtml(formatDate(task.createdAt))}</span>
+        </div>
+      </div>
       <div class="task-actions">
         <button class="icon-btn danger" data-action="delete-task" title="删除">✕</button>
       </div>
@@ -218,19 +230,27 @@ function closeModal() {
 
 async function saveProject(e) {
   e.preventDefault();
+  const button = els.form.querySelector('[type="submit"]');
+  if (button.disabled) return;
   const id = els.projectId.value;
   const body = {
     name: els.projectName.value.trim(),
     description: els.projectDesc.value.trim(),
     status: els.projectStatus.value,
   };
-  if (id) {
-    await api('PUT', `${API}/${id}`, body);
-  } else {
-    await api('POST', API, body);
+  if (!body.name) return;
+  button.disabled = true;
+  try {
+    if (id) {
+      await api('PUT', `${API}/${id}`, body);
+    } else {
+      await api('POST', API, body);
+    }
+    closeModal();
+    await loadProjects();
+  } finally {
+    button.disabled = false;
   }
-  closeModal();
-  await loadProjects();
 }
 
 async function deleteProject(id) {
@@ -260,7 +280,7 @@ async function exportData() {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `projects-${new Date().toISOString().slice(0, 10)}.json`;
+  a.download = `local-pm-${new Date().toISOString().slice(0, 10)}.json`;
   a.click();
   URL.revokeObjectURL(url);
 }
@@ -268,7 +288,7 @@ async function exportData() {
 
 els.btnNew.addEventListener('click', () => openModal());
 els.btnCancel.addEventListener('click', closeModal);
-els.form.addEventListener('submit', saveProject);
+els.form.addEventListener('submit', handleAsync(saveProject));
 els.modal.querySelector('.modal-backdrop').addEventListener('click', closeModal);
 
 els.search.addEventListener('input', e => {
@@ -288,7 +308,7 @@ els.filterRow.addEventListener('click', e => {
   render();
 });
 
-els.btnExport.addEventListener('click', exportData);
+els.btnExport.addEventListener('click', handleAsync(exportData));
 els.btnImport.addEventListener('click', () => els.importFile.click());
 els.importFile.addEventListener('change', async e => {
   const file = e.target.files[0];
@@ -298,15 +318,17 @@ els.importFile.addEventListener('change', async e => {
     const text = await file.text();
     const data = JSON.parse(text);
     const count = data.projects?.length || 0;
-    if (!confirm(`确定导入 ${count} 个项目？这将覆盖当前所有数据。`)) return;
-    await api('POST', '/api/import', data);
+    const scope = Object.hasOwn(data, 'roadmap') ? '项目和甘特图' : '项目（甘特图内容保留，关联状态会同步）';
+    if (!confirm(`确定导入 ${count} 个项目？将覆盖当前${scope}。覆盖前会自动备份旧数据。`)) return;
+    const result = await api('POST', '/api/import', data);
     await loadProjects();
+    alert(`导入成功。旧数据已备份到 data/${result.backup}`);
   } catch (err) {
     alert('导入失败：' + err.message);
   }
 });
 
-els.list.addEventListener('click', async e => {
+els.list.addEventListener('click', handleAsync(async e => {
   const target = e.target;
   const action = target.dataset.action;
   if (!action) return;
@@ -338,15 +360,6 @@ els.list.addEventListener('click', async e => {
 
   if (action === 'delete-project') {
     await deleteProject(projectId);
-    return;
-  }
-
-  if (action === 'add-task') {
-    const input = card.querySelector('.new-task-title');
-    const select = card.querySelector('.new-task-priority');
-    const title = input.value.trim();
-    if (!title) return;
-    await addTask(projectId, title, select.value);
     return;
   }
 
@@ -389,7 +402,7 @@ els.list.addEventListener('click', async e => {
     }
     render();
   }
-});
+}));
 
 els.list.addEventListener('change', async e => {
   const target = e.target;
@@ -422,7 +435,7 @@ els.list.addEventListener('change', async e => {
   }
 });
 
-els.list.addEventListener('blur', async e => {
+els.list.addEventListener('blur', handleAsync(async e => {
   const target = e.target;
   if (!target.classList.contains('task-title')) return;
   const taskItem = target.closest('.task-item');
@@ -439,18 +452,26 @@ els.list.addEventListener('blur', async e => {
     return;
   }
   await updateTask(projectId, taskId, { title: newTitle });
-}, true);
+}), true);
 
-els.list.addEventListener('keydown', e => {
+els.list.addEventListener('keydown', handleAsync(async e => {
+  if (e.isComposing || e.keyCode === 229) return;
   if (e.target.classList.contains('task-title') && e.key === 'Enter') {
     e.preventDefault();
     e.target.blur();
   }
   if (e.target.classList.contains('new-task-title') && e.key === 'Enter') {
-    const card = e.target.closest('.card');
-    card.querySelector('[data-action="add-task"]').click();
+    e.preventDefault();
+    const input = e.target;
+    if (input.disabled) return;
+    const card = input.closest('.card');
+    const title = input.value.trim();
+    if (!title) return;
+    input.disabled = true;
+    try { await addTask(card.dataset.id, title, 'medium'); }
+    finally { input.disabled = false; }
   }
-});
+}));
 
 // Clear filters button in empty state
 els.empty.addEventListener('click', e => {

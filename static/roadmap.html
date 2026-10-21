@@ -11,53 +11,34 @@
     <div class="topbar-left">
       <a href="/" class="back-link">← 返回项目列表</a>
       <a href="/timeline" class="back-link">可编辑时间轴 →</a>
-      <h1 id="page-title">研发进度规划</h1>
     </div>
-    <div class="actions">
-      <button id="btn-edit" class="btn">编辑</button>
-      <button id="btn-save" class="btn primary hidden">保存</button>
-      <button id="btn-cancel" class="btn hidden">取消</button>
+    <h1 id="page-title">研发进度规划</h1>
+    <div class="topbar-right">
+      <button id="btn-undo" class="btn btn-sm" title="撤销 (Cmd+Z)" disabled>↩ 撤销</button>
+      <button id="btn-today" class="btn btn-sm" title="滚动定位到今天">今天</button>
+      <button id="btn-backup" class="btn btn-sm">备份 JSON</button>
+      <button id="btn-export" class="btn btn-sm" title="打印 / 导出 PDF">打印 / PDF</button>
+      <div class="zoom-switch" id="zoom-switch">
+        <button type="button" data-zoom="day">日</button>
+        <button type="button" data-zoom="week">周</button>
+        <button type="button" data-zoom="month">月</button>
+      </div>
+      <span class="save-status" id="save-status" role="status" aria-live="polite"></span>
     </div>
   </header>
 
- <main class="container">
-    <section class="okr-section" id="okr-section">
-      <div class="okr-header" id="okr-toggle">
-        <h2 id="okr-title"></h2>
-        <div class="okr-header-right">
-          <button id="btn-okr-edit" class="btn okr-edit-btn hidden">编辑 OKR</button>
-          <span class="okr-toggle-icon" id="okr-toggle-icon">▾</span>
-        </div>
-      </div>
-      <div class="okr-body" id="okr-body"></div>
-    </section>
-
-   <div class="tab-bar">
-      <button class="tab-btn active" data-tab="tab-quarterly">季度</button>
-      <button class="tab-btn" data-tab="tab-biweekly">双周</button>
-      <button class="tab-btn" data-tab="tab-yearly">年度</button>
+  <main class="container">
+    <div id="save-notice" class="save-notice hidden" role="alert">
+      <span id="save-message"></span>
+      <button id="btn-retry" class="btn btn-sm">重试保存</button>
+      <button id="btn-draft" class="btn btn-sm">下载本页草稿</button>
+      <button id="btn-reload" class="btn btn-sm">加载最新版本</button>
     </div>
-
-   <div class="tab-content active" id="tab-quarterly">
-    <div class="timeline-wrap">
+    <div class="gantt-wrap">
       <div id="gantt" class="gantt">
         <!-- 动态生成 -->
       </div>
     </div>
-  </div>
-
-   <div class="tab-content" id="tab-biweekly">
-      <div class="table-view" id="biweekly-view">
-        <p class="empty-state">加载中...</p>
-      </div>
-    </div>
-
-   <div class="tab-content" id="tab-yearly">
-      <div class="table-view" id="yearly-view">
-        <p class="empty-state">加载中...</p>
-      </div>
-    </div>
-
   </main>
 
   <div id="modal" class="modal hidden" aria-hidden="true">
@@ -71,6 +52,11 @@
           任务名称
           <input type="text" id="item-name" required>
         </label>
+        <label>
+          关联项目任务（可选）
+          <select id="item-task-link"><option value="">不关联</option></select>
+        </label>
+        <p class="field-hint">进度 100% 表示关联任务完成；取消完成会将 100% 重置为 0%。</p>
         <div class="form-row">
           <label>
             开始日期
@@ -82,16 +68,12 @@
           </label>
         </div>
         <label>
-          进度（0-100）
-          <input type="number" id="item-progress" min="0" max="100" step="5" value="0">
-        </label>
-        <label>
-          颜色
-          <input type="color" id="item-color" value="#e5e7eb">
+          进度（<span id="item-progress-val">0</span>%）
+          <input type="range" id="item-progress" min="0" max="100" step="5" value="0">
         </label>
         <label>
           里程碑（每行一个，格式：YYYY-MM-DD 名称）
-          <textarea id="item-milestones" rows="4" placeholder="2026-07-20 项目立项\n2026-08-15 传感器布局确认"></textarea>
+          <textarea id="item-milestones" rows="4" placeholder="2026-07-20 项目立项&#10;2026-08-15 传感器布局确认"></textarea>
         </label>
         <div class="modal-actions">
           <button type="button" id="btn-delete-item" class="btn danger">删除任务</button>
@@ -104,21 +86,7 @@
     </div>
   </div>
 
-  <div id="okr-modal" class="modal hidden" aria-hidden="true">
-    <div class="modal-backdrop"></div>
-    <div class="modal-card okr-modal-card">
-      <h2>编辑 OKR（JSON 格式）</h2>
-      <textarea id="okr-json" rows="18" spellcheck="false" placeholder='{"title": "...", "summary": "...", "objectives": []}'></textarea>
-      <div class="modal-actions">
-        <button type="button" id="btn-okr-clear" class="btn danger">清空 OKR</button>
-        <div class="right-actions">
-          <button type="button" id="btn-okr-cancel" class="btn">取消</button>
-          <button type="button" id="btn-okr-save" class="btn primary">保存</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
+  <script src="/static/save-queue.js"></script>
   <script src="/static/roadmap.js"></script>
 </body>
 </html>

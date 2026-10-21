@@ -61,6 +61,17 @@ body {
 
 .btn.small { padding: 0.25rem 0.5rem; font-size: 0.8rem; }
 
+.btn.text-btn {
+  border-color: transparent;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.btn.text-btn:hover {
+  color: var(--text);
+  background: #f3f4f6;
+}
+
 .container { max-width: 1100px; margin: 0 auto; padding: 1.5rem; }
 
 .toolbar {
@@ -195,7 +206,7 @@ body {
   flex-wrap: wrap;
 }
 
-.card-dates {
+.card-updated {
   color: var(--muted);
   font-size: 0.78rem;
 }
@@ -247,7 +258,7 @@ body {
 
 .task-item {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 0.5rem;
   padding: 0.35rem 0;
   border-bottom: 1px solid var(--border);
@@ -255,28 +266,57 @@ body {
 
 .task-item:last-child { border-bottom: none; }
 
+.task-item .task-done { margin-top: 0.35rem; }
+
+.task-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
 .task-item.done .task-title {
   text-decoration: line-through;
   color: var(--muted);
 }
 
 .task-title {
-  flex: 1;
   font-size: 0.92rem;
   cursor: text;
   padding: 0.15rem 0.3rem;
   border-radius: 4px;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .task-title:hover { background: #f3f4f6; }
 
-.task-actions { display: flex; gap: 0.25rem; }
+.task-sub {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding-left: 0.3rem;
+}
+
+.badge[data-action="cycle-priority"] { cursor: pointer; }
+
+.task-actions {
+  display: flex;
+  gap: 0.25rem;
+  visibility: hidden;
+  flex-shrink: 0;
+}
+
+.task-item:hover .task-actions { visibility: visible; }
 
 .task-date {
+  display: none;
   color: var(--muted);
   font-size: 0.75rem;
   white-space: nowrap;
 }
+
+.task-item:hover .task-date { display: inline; }
 
 .add-task {
   display: flex;
@@ -286,18 +326,17 @@ body {
 
 .add-task input {
   flex: 1;
-  padding: 0.45rem 0.65rem;
-  border: 1px solid var(--border);
+  padding: 0.4rem 0.65rem;
+  border: 1px dashed var(--border);
   border-radius: 6px;
-  font-size: 0.9rem;
+  font-size: 0.88rem;
+  color: var(--text);
 }
 
-.add-task select {
-  padding: 0.45rem 0.5rem;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  font-size: 0.9rem;
-  background: #fff;
+.add-task input:focus {
+  outline: none;
+  border-style: solid;
+  border-color: var(--primary);
 }
 
 .icon-btn {

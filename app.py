@@ -1,18 +1,20 @@
 #!/usr/bin/env python3
 """本地项目管理工具：一个基于 Python 标准库的轻量级 Web 服务。
 
-所有数据以人类可读的 JSON 形式保存在 ./data/projects.json。
+项目和甘特图以人类可读的 JSON 形式保存在 ./data/。
 """
 
 import datetime
+import functools
 import json
 import os
 import re
-import shutil
-import threading
 import uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import unquote, urlparse
+
+from models import VALID_PRIORITY, VALID_PROJECT_STATUS, ValidationError, require, text
+from storage import ConflictError, Store
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_FILE = os.path.join(BASE_DIR, "data", "projects.json")
@@ -22,8 +24,7 @@ HOST = "127.0.0.1"
 PORT = 8765
 MAX_BODY_SIZE = 10 * 1024 * 1024  # 10 MB
 
-_data_lock = threading.Lock()
-_roadmap_lock = threading.Lock()
+store = Store(os.path.dirname(DATA_FILE))
 
 CONTENT_TYPES = {
     ".html": "text/html; charset=utf-8",
@@ -32,76 +33,48 @@ CONTENT_TYPES = {
     ".json": "application/json; charset=utf-8",
 }
 
-VALID_PROJECT_STATUS = {"active", "archived", "done"}
-VALID_PRIORITY = {"high", "medium", "low"}
-
 
 def now_iso() -> str:
     return datetime.datetime.now().isoformat(timespec="seconds")
 
 
-def ensure_data() -> None:
-    os.makedirs(os.path.dirname(DATA_FILE), exist_ok=True)
-    if not os.path.exists(DATA_FILE):
-        with open(DATA_FILE, "w", encoding="utf-8") as f:
-            json.dump({"projects": []}, f, ensure_ascii=False, indent=2)
-            f.write("\n")
-
-
-def load_data() -> dict:
-    ensure_data()
-    with open(DATA_FILE, "r", encoding="utf-8") as f:
-        return json.load(f)
-
-
-def save_data(data: dict) -> None:
-    ensure_data()
-    tmp = DATA_FILE + ".tmp"
-    with open(tmp, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
-        f.write("\n")
-    shutil.move(tmp, DATA_FILE)
-
-
-def ensure_roadmap() -> None:
-    os.makedirs(os.path.dirname(ROADMAP_FILE), exist_ok=True)
-    if not os.path.exists(ROADMAP_FILE):
-        with open(ROADMAP_FILE, "w", encoding="utf-8") as f:
-            json.dump({"lanes": []}, f, ensure_ascii=False, indent=2)
-            f.write("\n")
-
-
-def load_roadmap() -> dict:
-    ensure_roadmap()
-    with open(ROADMAP_FILE, "r", encoding="utf-8") as f:
-        return json.load(f)
-
-
-def save_roadmap(data: dict) -> None:
-    ensure_roadmap()
-    tmp = ROADMAP_FILE + ".tmp"
-    with open(tmp, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
-        f.write("\n")
-    shutil.move(tmp, ROADMAP_FILE)
-
-
-def modify_roadmap(modifier_fn):
-    """线程安全地加载、修改并保存 roadmap 数据。"""
-    with _roadmap_lock:
-        data = load_roadmap()
-        result = modifier_fn(data)
-        save_roadmap(data)
-    return result
-
-
 def modify_data(modifier_fn):
-    """线程安全地加载、修改并保存数据。"""
-    with _data_lock:
-        data = load_data()
-        result = modifier_fn(data)
-        save_data(data)
-    return result
+    return store.modify_projects(modifier_fn)
+
+
+class RequestError(ValueError):
+    def __init__(self, status, message):
+        super().__init__(message)
+        self.status = status
+
+
+def api_errors(fn):
+    @functools.wraps(fn)
+    def wrapped(self):
+        try:
+            fn(self)
+        except RequestError as error:
+            self.send_json(error.status, {"error": str(error)})
+        except ConflictError as error:
+            self.send_json(409, {"error": str(error)})
+        except ValidationError as error:
+            self.send_json(400, {"error": str(error)})
+        except (OSError, json.JSONDecodeError) as error:
+            self.log_message("storage error: %s", error)
+            self.send_json(500, {"error": "无法读取或保存本地数据，请检查数据文件和磁盘后重试"})
+    return wrapped
+
+
+def validate_fields(body, task=False):
+    for field in (("title",) if task else ("name", "description")):
+        if field in body:
+            text(body[field], field, nonempty=field != "description")
+    flag = "done" if task else "pinned"
+    if flag in body:
+        require(type(body[flag]) is bool, f"{flag} 必须是布尔值")
+    enum, choices = ("priority", VALID_PRIORITY) if task else ("status", VALID_PROJECT_STATUS)
+    if enum in body:
+        require(body[enum] in choices, f"{enum} 无效")
 
 
 class APIHandler(BaseHTTPRequestHandler):
@@ -117,17 +90,22 @@ class APIHandler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def read_body(self) -> dict:
-        length = int(self.headers.get("Content-Length", 0))
+        try:
+            length = int(self.headers.get("Content-Length", 0))
+        except ValueError:
+            raise RequestError(400, "Content-Length 无效") from None
+        if length < 0:
+            raise RequestError(400, "Content-Length 无效")
         if length > MAX_BODY_SIZE:
-            self.send_json(413, {"error": "request body too large"})
-            return {}
-        if length:
-            raw = self.rfile.read(length).decode("utf-8")
-            try:
-                return json.loads(raw) if raw else {}
-            except (json.JSONDecodeError, UnicodeDecodeError):
-                return {}
-        return {}
+            raise RequestError(413, "request body too large")
+        try:
+            def reject_constant(value):
+                raise ValueError(value)
+            body = json.loads(self.rfile.read(length).decode("utf-8"), parse_constant=reject_constant)
+        except (ValueError, UnicodeDecodeError):
+            raise RequestError(400, "请求必须是有效的 UTF-8 JSON") from None
+        require(isinstance(body, dict), "请求必须是 JSON 对象")
+        return body
 
     def serve_static(self, rel_path: str) -> None:
         if rel_path.startswith("/") or rel_path.startswith("\\"):
@@ -150,6 +128,7 @@ class APIHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(data)
 
+    @api_errors
     def do_GET(self):
         path = urlparse(self.path).path
         if path == "/":
@@ -160,13 +139,16 @@ class APIHandler(BaseHTTPRequestHandler):
             self.serve_static("项目进度时间轴_可编辑.html")
         elif path.startswith("/static/"):
             self.serve_static(unquote(path[len("/static/"):]))
-        elif path == "/api/projects" or path == "/api/export":
-            self.send_json(200, load_data())
+        elif path == "/api/projects":
+            self.send_json(200, store.projects())
+        elif path == "/api/export":
+            self.send_json(200, store.export())
         elif path == "/api/roadmap":
-            self.send_json(200, load_roadmap())
+            self.send_json(200, store.roadmap())
         else:
             self.send_json(404, {"error": "not found"})
 
+    @api_errors
     def do_POST(self):
         path = urlparse(self.path).path
         if path == "/api/projects":
@@ -180,6 +162,7 @@ class APIHandler(BaseHTTPRequestHandler):
             else:
                 self.send_json(404, {"error": "not found"})
 
+    @api_errors
     def do_PUT(self):
         path = urlparse(self.path).path
         if path == "/api/roadmap":
@@ -195,6 +178,7 @@ class APIHandler(BaseHTTPRequestHandler):
             return
         self.send_json(404, {"error": "not found"})
 
+    @api_errors
     def do_DELETE(self):
         path = urlparse(self.path).path
         m = re.match(r"^/api/projects/([^/]+)$", path)
@@ -209,6 +193,7 @@ class APIHandler(BaseHTTPRequestHandler):
 
     def create_project(self):
         body = self.read_body()
+        validate_fields(body)
         name = str(body.get("name", "")).strip()
         if not name:
             self.send_json(400, {"error": "name is required"})
@@ -237,6 +222,7 @@ class APIHandler(BaseHTTPRequestHandler):
 
     def update_project(self, pid: str):
         body = self.read_body()
+        validate_fields(body)
 
         def _update(data):
             p = next((x for x in data["projects"] if x["id"] == pid), None)
@@ -275,6 +261,7 @@ class APIHandler(BaseHTTPRequestHandler):
 
     def create_task(self, pid: str):
         body = self.read_body()
+        validate_fields(body, task=True)
         title = str(body.get("title", "")).strip()
         if not title:
             self.send_json(400, {"error": "title is required"})
@@ -307,6 +294,7 @@ class APIHandler(BaseHTTPRequestHandler):
 
     def update_task(self, pid: str, tid: str):
         body = self.read_body()
+        validate_fields(body, task=True)
 
         def _update(data):
             p = next((x for x in data["projects"] if x["id"] == pid), None)
@@ -353,64 +341,12 @@ class APIHandler(BaseHTTPRequestHandler):
 
     def update_roadmap(self):
         body = self.read_body()
-        if not isinstance(body, dict) or "lanes" not in body or not isinstance(body["lanes"], list):
-            self.send_json(400, {"error": "roadmap must contain lanes array"})
-            return
-
-        def _update(data):
-            data["lanes"] = body["lanes"]
-            if "title" in body:
-                data["title"] = str(body["title"])
-            if "startDate" in body:
-                data["startDate"] = str(body["startDate"])
-            if "endDate" in body:
-                data["endDate"] = str(body["endDate"])
-            if "okr" in body:
-                if body["okr"] is None:
-                    data.pop("okr", None)
-                else:
-                    data["okr"] = body["okr"]
-                data.pop("q3_okr", None)
-            return data
-
-        roadmap = modify_roadmap(_update)
-        self.send_json(200, roadmap)
+        require(isinstance(body.get("lanes"), list), "roadmap must contain lanes array")
+        self.send_json(200, store.update_roadmap(body))
 
     def import_data(self):
         body = self.read_body()
-        if "projects" not in body or not isinstance(body["projects"], list):
-            self.send_json(400, {"error": "projects array required"})
-            return
-
-        for i, p in enumerate(body["projects"]):
-            if not isinstance(p, dict):
-                self.send_json(400, {"error": f"projects[{i}] is not an object"})
-                return
-            if not isinstance(p.get("name", ""), str) or not str(p.get("name", "")).strip():
-                self.send_json(400, {"error": f"projects[{i}].name is required"})
-                return
-
-        def _import(data):
-            for p in body["projects"]:
-                p.setdefault("id", str(uuid.uuid4()))
-                p.setdefault("tasks", [])
-                p["status"] = p.get("status", "active")
-                if p["status"] not in VALID_PROJECT_STATUS:
-                    p["status"] = "active"
-                p.setdefault("description", "")
-                p.setdefault("pinned", False)
-                for j, t in enumerate(p["tasks"]):
-                    if isinstance(t, dict):
-                        t.setdefault("id", str(uuid.uuid4()))
-                        t.setdefault("title", "")
-                        t.setdefault("done", False)
-                        priority = t.get("priority", "medium")
-                        t["priority"] = priority if priority in VALID_PRIORITY else "medium"
-                data["projects"] = body["projects"]
-            return len(data["projects"])
-
-        count = modify_data(_import)
-        self.send_json(200, {"count": count})
+        self.send_json(200, store.import_backup(body))
 
 
 if __name__ == "__main__":
