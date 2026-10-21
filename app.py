@@ -12,7 +12,7 @@ import shutil
 import threading
 import uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from urllib.parse import urlparse
+from urllib.parse import unquote, urlparse
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_FILE = os.path.join(BASE_DIR, "data", "projects.json")
@@ -156,8 +156,10 @@ class APIHandler(BaseHTTPRequestHandler):
             self.serve_static("index.html")
         elif path == "/roadmap":
             self.serve_static("roadmap.html")
+        elif path == "/timeline":
+            self.serve_static("项目进度时间轴_可编辑.html")
         elif path.startswith("/static/"):
-            self.serve_static(path[len("/static/"):])
+            self.serve_static(unquote(path[len("/static/"):]))
         elif path == "/api/projects" or path == "/api/export":
             self.send_json(200, load_data())
         elif path == "/api/roadmap":
