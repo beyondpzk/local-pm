@@ -22,6 +22,7 @@
 .month-controls #monthCount{width:55px}.month-controls button{font-size:12px;padding:6px 9px}
 .month-controls input:disabled,.month-controls button:disabled{opacity:.48}
 .month-guide{display:flex;align-items:center;gap:9px;padding:6px 16px;background:#f5f0ff;border-bottom:1px solid #e6dafa;color:#5b418c;font-size:12px;flex-wrap:wrap}
+.node-legend{display:flex;align-items:center;gap:15px;flex-wrap:wrap;padding:7px 16px;background:#fff;border-bottom:1px solid var(--border);font-size:12px;color:#59657a}.node-legend span{display:inline-flex;align-items:center;gap:5px}.legend-dot{display:inline-block;border-radius:50%;width:12px;height:12px;background:#eadcf9;border:1px solid #695779}.legend-dot.todo{width:5px;height:5px}.legend-dot.high{background:#ef4444;border-color:#b91c1c}.legend-dot.medium{background:#facc15;border-color:#a16207}.legend-dot.low{background:#22c55e;border-color:#15803d}
 .month-guide .dot{width:10px;height:10px;background:#ad8be7;border-radius:3px;display:inline-block}
 #editMode{font-weight:700}.only-edit[disabled]{opacity:.35}@media(max-width:1100px){.inspector{width:222px}.topbar{padding:9px}.brand-sub{display:none}.toolbar button{padding:7px 9px}}@media(max-width:760px){.topbar{align-items:flex-start;flex-direction:column}.toolbar{justify-content:flex-start}.leftbar{width:57px}.tool{font-size:10px}.tool .glyph{font-size:17px}.inspector{position:absolute;right:0;top:120px;bottom:30px;z-index:3;box-shadow:-5px 0 18px #1720361a;display:none}.inspector.show{display:flex}.main{width:100%}}
 </style>
@@ -64,6 +65,7 @@
         </div>
       </div>
       <div class="month-guide"><span class="dot"></span><span id="modeHint">查看模式：点击「进入编辑」后，即可修改月份和任务</span><span style="color:#8a789e">编辑时：拖动月份上方的紫色分界手柄调整宽度；点击月份可精确输入宽度；拖动泳道横线可上下调整</span></div>
+      <div class="node-legend" aria-label="节点图例"><span><i class="legend-dot high"></i>红色：风险极大</span><span><i class="legend-dot medium"></i>黄色：有风险</span><span><i class="legend-dot low"></i>绿色：无风险</span><span><i class="legend-dot"></i>紫色：未标记风险</span><span><i class="legend-dot"></i>大圆：重要里程碑</span><span><i class="legend-dot todo"></i>小圆：事项 / Todo</span></div>
       <div class="stage-wrap"><svg id="stage" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1460 960" aria-label="交互式项目时间轴"></svg></div>
       <div class="bottom"><span id="status">示例数据 · 鼠标滚轮缩放 · 点击「进入编辑」开始修改</span><span id="zoomStatus">100%</span></div>
     </main>
@@ -80,6 +82,11 @@ const $=(id)=>document.getElementById(id);
 const clone=(x)=>JSON.parse(JSON.stringify(x));
 const uid=(prefix)=>prefix+'_'+Math.random().toString(36).slice(2,10);
 const monthStart=230, MIN_MONTH=120, MAX_MONTH=1400;
+const RISK_LEVELS={unset:{label:'未标记风险',color:'#eadcf9',stroke:'#695779'},high:{label:'风险极大',color:'#ef4444',stroke:'#b91c1c'},medium:{label:'有风险',color:'#facc15',stroke:'#a16207'},low:{label:'无风险',color:'#22c55e',stroke:'#15803d'}};
+const NODE_TYPES={milestone:{label:'重要里程碑',radius:8.8},todo:{label:'事项 / Todo',radius:3.5}};
+function nodeRisk(node){return Object.hasOwn(RISK_LEVELS,node.risk)?RISK_LEVELS[node.risk]:RISK_LEVELS.unset;}
+function nodeType(node){return Object.hasOwn(NODE_TYPES,node.kind)?NODE_TYPES[node.kind]:NODE_TYPES.milestone;}
+
 function monthName(m){return `${m.year} 年 ${m.month} 月`}
 function monthList(year,month,count,widths=[]){return Array.from({length:count},(_,i)=>{
  const d=new Date(year,month-1+i,1);return {year:d.getFullYear(),month:d.getMonth()+1,width:widths[i]||280};
@@ -233,11 +240,25 @@ function renderBase(root,forExport=false){
   linesText(laneLabel,86,yy-3,l.name==='平台与设备'?'平台与\n设备':l.name,17,'start',{weight:650,color:'#2d3037',events:editing&&!forExport?'visiblePainted':'none'});
  });
 }
+function curveControl(a,b){
+ const dx=b.x-a.x,dy=b.y-a.y,length=Math.hypot(dx,dy)||1,bend=Math.min(90,length*.25);
+ return {x:(a.x+b.x)/2-dy/length*bend,y:(a.y+b.y)/2+dx/length*bend};
+}
+function arrowPath(a){
+ const pts=a.points;if(pts.length<2)return '';
+ const start=`M ${pts[0].x} ${pts[0].y}`,last=pts.at(-1);
+ if(a.style==='straight')return `${start} L ${last.x} ${last.y}`;
+ if(a.style!=='curve')return pts.map((p,i)=>(i?'L':'M')+' '+p.x+' '+p.y).join(' ');
+ if(pts.length===2){const c=curveControl(pts[0],last);return `${start} Q ${c.x} ${c.y} ${last.x} ${last.y}`;}
+ let d=start;
+ for(let i=1;i<pts.length-2;i++)d+=` Q ${pts[i].x} ${pts[i].y} ${(pts[i].x+pts[i+1].x)/2} ${(pts[i].y+pts[i+1].y)/2}`;
+ const c=pts[pts.length-2];return d+` Q ${c.x} ${c.y} ${last.x} ${last.y}`;
+}
 function drawArrow(group,a,isSel=false){const pts=a.points;if(pts.length<2)return;
- const d=pts.map((p,i)=>(i?'L':'M')+' '+p.x+' '+p.y).join(' ');
+ const d=arrowPath(a);
  const g=svg('g',{},group);
- svg('path',{d,fill:'none',stroke:isSel?'#8c5bd2':'#252328','stroke-width':isSel?2.7:1.85,'stroke-linecap':'round','stroke-linejoin':'round','marker-end':'url(#head)','pointer-events':'none'},g);
- if(!forExportMode){const hit=svg('path',{d,stroke:'transparent','stroke-width':20,fill:'none',cursor:editing?'move':'default'},g);
+ svg('path',{'data-arrow-id':a.id,d,fill:'none','marker-start':a.direction==='both'?'url(#head)':'none',stroke:isSel?'#8c5bd2':'#252328','stroke-width':isSel?2.7:1.85,'stroke-linecap':'round','stroke-linejoin':'round','marker-end':'url(#head)','pointer-events':'none'},g);
+ if(!forExportMode){const hit=svg('path',{'data-arrow-hit':a.id,d,stroke:'transparent','stroke-width':20,fill:'none',cursor:editing?'move':'default'},g);
   hit.addEventListener('pointerdown',ev=>startDrag(ev,'arrow',a.id));hit.addEventListener('dblclick',ev=>{if(!editing)return;ev.stopPropagation();insertArrowBend(a,point(ev));});}
 }
 let forExportMode=false;
@@ -245,9 +266,13 @@ function drawObjects(root){
  const arrows=svg('g',{},root);data.arrows.forEach(a=>drawArrow(arrows,a,selection?.type==='arrow'&&selection.id===a.id));
  const nodes=svg('g',{},root);data.nodes.forEach(n=>{
   const sel=selection?.type==='node'&&selection.id===n.id;
-  const circle=svg('circle',{cx:n.x,cy:n.y,r:sel?10:8.8,fill:sel?'#d3b7ff':'#eadcf9',stroke:sel?'#5c389c':'#261f30','stroke-width':sel?2.6:1.6,cursor:editing?'move':'default'},nodes);
-  const ti=svg('title',{},circle);ti.textContent=n.title||'里程碑';
-  if(!forExportMode){circle.addEventListener('pointerdown',ev=>startDrag(ev,'node',n.id));circle.addEventListener('dblclick',ev=>{if(!editing)return;ev.stopPropagation();openTextDialog(n,'title','修改里程碑标题');});}
+  const risk=nodeRisk(n),kind=nodeType(n);
+  if(sel&&!forExportMode)svg('circle',{cx:n.x,cy:n.y,r:kind.radius+4,fill:'none',stroke:'#7354ba','stroke-width':1.5,'stroke-dasharray':'3 2','pointer-events':'none'},nodes);
+  const nodeGroup=svg('g',{cursor:editing?'move':'default'},nodes);
+  if(!forExportMode)svg('circle',{'data-node-hit':n.id,cx:n.x,cy:n.y,r:Math.max(10,kind.radius),fill:'transparent'},nodeGroup);
+  const circle=svg('circle',{'data-node-id':n.id,cx:n.x,cy:n.y,r:kind.radius,fill:risk.color,stroke:risk.stroke,'stroke-width':1.6,cursor:editing?'move':'default'},nodeGroup);
+  const ti=svg('title',{},circle);ti.textContent=`${n.title||'未命名节点'} · ${kind.label} · ${risk.label}`;
+  if(!forExportMode){nodeGroup.addEventListener('pointerdown',ev=>startDrag(ev,'node',n.id));nodeGroup.addEventListener('dblclick',ev=>{if(!editing)return;ev.stopPropagation();openTextDialog(n,'title','修改里程碑标题');});}
  });
  const texts=svg('g',{},root);data.texts.forEach(t=>{
   const sel=selection?.type==='text'&&selection.id===t.id;
@@ -256,6 +281,7 @@ function drawObjects(root){
   if(sel&&!forExportMode){try{const b=text.getBBox();svg('rect',{x:b.x-6,y:b.y-5,width:b.width+12,height:b.height+10,rx:4,fill:'none',stroke:'#9266d5','stroke-width':1.5,'stroke-dasharray':'5 3','pointer-events':'none'},wrap);}catch(e){}}
  });
  if(selection?.type==='arrow'&&editing&&!forExportMode){const a=obj('arrow',selection.id);if(a)a.points.forEach((p,i)=>{
+  if(a.style==='straight'&&i>0&&i<a.points.length-1)return;
   const c=svg('rect',{x:p.x-6,y:p.y-6,width:12,height:12,rx:3,fill:selectedHandle===i?'#8056ce':'#fff',stroke:'#845bc5','stroke-width':2,cursor:'crosshair'},root);
   c.addEventListener('pointerdown',ev=>startHandleDrag(ev,a.id,i));
  });}
@@ -280,7 +306,7 @@ function drawToday(root){
  svg('rect',{x:labelX-42,y:237,width:84,height:23,rx:6,fill:'#fff0f2',stroke:'#f2b5be'},g);
  linesText(g,labelX,253,`今天 ${today.getMonth()+1}/${today.getDate()}`,12,'middle',{weight:650,color:'#c4374c'});
 }
-function markerDefs(root){const defs=svg('defs',{},root);const m=svg('marker',{id:'head',markerWidth:9,markerHeight:9,refX:7,refY:3.5,orient:'auto',markerUnits:'userSpaceOnUse',viewBox:'0 0 7 7'},defs);svg('path',{d:'M0,0 L7,3.5 L0,7 Z',fill:'#252328'},m);}
+function markerDefs(root){const defs=svg('defs',{},root);const m=svg('marker',{id:'head',markerWidth:9,markerHeight:9,refX:7,refY:3.5,orient:'auto-start-reverse',markerUnits:'userSpaceOnUse',viewBox:'0 0 7 7'},defs);svg('path',{d:'M0,0 L7,3.5 L0,7 Z',fill:'#252328'},m);}
 function render(){stage.replaceChildren();stage.setAttribute('viewBox',[view.x,view.y,view.w,view.h].join(' '));markerDefs(stage);renderBase(stage);drawObjects(stage);drawToday(stage);$('brandTitle').textContent=data.title||'项目里程碑进度图';updateInspector();refreshMonthsUI();$('zoomStatus').textContent=Math.round((data.view.w||1460)/view.w*100)+'%';}
 function point(ev){const pt=stage.createSVGPoint();pt.x=ev.clientX;pt.y=ev.clientY;return pt.matrixTransform(stage.getScreenCTM().inverse());}
 function setTool(t){tool=t;arrowStart=null;document.querySelectorAll('[data-tool]').forEach(b=>b.classList.toggle('active',b.dataset.tool===t));stage.setAttribute('class',t==='hand'?'grab':t==='node'||t==='text'||t==='arrow'?'mode-'+t:'');$('modeHint').textContent=!editing?'查看模式：使用平移工具移动、滚轮缩放':({select:'选择并拖动对象 · 双击文字编辑 · Delete 删除',node:'点击空白位置，放置可拖动的里程碑节点',text:'点击空白位置，添加自由文字',arrow:'点击起点，再点击终点；选中后拖动线段与端点',hand:'拖动画布 · 滚轮缩放'})[t];if(t!=='select')selection=null;render();}
@@ -379,7 +405,7 @@ function pointerRelease(ev){if(!drag)return;if(drag.mode==='handle'){
  }if(drag.mode==='object'||drag.mode==='handle'||drag.mode==='month-resize'||drag.mode==='lane-move')safeSave();drag=null;stage.classList.remove('grabbing');render();}
 stage.addEventListener('pointerup',pointerRelease);stage.addEventListener('pointercancel',pointerRelease);
 function distSegment(p,a,b){const dx=b.x-a.x,dy=b.y-a.y;const t=Math.max(0,Math.min(1,((p.x-a.x)*dx+(p.y-a.y)*dy)/(dx*dx+dy*dy||1)));return Math.hypot(p.x-(a.x+t*dx),p.y-(a.y+t*dy));}
-function insertArrowBend(a,p){let best=Infinity,ix=1;for(let i=0;i<a.points.length-1;i++){const d=distSegment(p,a.points[i],a.points[i+1]);if(d<best){best=d;ix=i+1;}}snapshot();a.points.splice(ix,0,{x:Math.round(p.x),y:Math.round(p.y)});selection={type:'arrow',id:a.id};selectedHandle=ix;safeSave();render();toast('已添加折点，拖动小方块调整');}
+function insertArrowBend(a,p){let best=Infinity,ix=1;for(let i=0;i<a.points.length-1;i++){const d=distSegment(p,a.points[i],a.points[i+1]);if(d<best){best=d;ix=i+1;}}snapshot();if(a.style==='straight')a.style='polyline';a.points.splice(ix,0,{x:Math.round(p.x),y:Math.round(p.y)});selection={type:'arrow',id:a.id};selectedHandle=ix;safeSave();render();toast('已添加折点，拖动小方块调整');}
 function updateInspector(){
  const ct=$('inspectContent');ct.replaceChildren();
  const desc=(content)=>{const d=document.createElement('div');d.className='subtle';d.textContent=content;ct.appendChild(d);};
@@ -407,6 +433,14 @@ function updateInspector(){
   return;
  }
  const it=obj(selection.type,selection.id);if(!it){selection=null;return;}
+  const choice=(title,field,options,fallback)=>{
+   const l=document.createElement('label');const caption=document.createElement('span');caption.className='formlabel';caption.textContent=title;
+   const select=document.createElement('select');select.disabled=!editing;
+   for(const [value,text] of options){const option=document.createElement('option');option.value=value;option.textContent=text;select.append(option);}
+   select.value=options.some(([value])=>value===it[field])?it[field]:fallback;
+   select.addEventListener('change',()=>{snapshot();it[field]=select.value;if(field==='style'&&it.style==='curve'&&it.points.length===2)it.points.splice(1,0,curveControl(it.points[0],it.points[1]));safeSave();render();});l.append(caption,select);ct.append(l);
+  };
+
  if(selection.type==='lane'){
   desc('当前选中：泳道名称。修改后自动保存在本机，也可撤销或导出分享。');
   label('泳道名称（支持多行）',it.name||'',v=>it.name=v,'textarea');
@@ -421,7 +455,12 @@ function updateInspector(){
   return;
  }
  desc('当前选中：'+({node:'里程碑节点',text:'自由文字',arrow:'可拖动箭头'})[selection.type]);
- if(selection.type==='node')label('节点说明（鼠标悬浮可看）',it.title||'',v=>it.title=v);
+ if(selection.type==='node'){
+  label('节点说明（鼠标悬浮可看）',it.title||'',v=>it.title=v);
+  choice('风险颜色','risk',[['unset','紫色 · 未标记风险'],['high','红色 · 风险极大'],['medium','黄色 · 有风险'],['low','绿色 · 无风险']],'unset');
+  choice('节点类型 / 圆圈大小','kind',[['milestone','大圆圈 · 重要里程碑（Milestone）'],['todo','小圆圈 · 事项 / Todo']],'milestone');
+ }
+
  if(selection.type==='text'){
   label('文字内容（支持多行）',it.text||'',v=>it.text=v,'textarea');
   label('字体大小（px）',it.fontSize||13,v=>it.fontSize=Math.max(8,Math.min(50,Number(v)||13)),'number');
@@ -429,9 +468,11 @@ function updateInspector(){
   const l=document.createElement('label');l.className='formlabel';l.textContent='文字对齐';const s=document.createElement('select');s.innerHTML='<option value="start">左对齐</option><option value="middle">居中</option><option value="end">右对齐</option>';s.value=it.align||'start';s.disabled=!editing;s.addEventListener('change',()=>{snapshot();it.align=s.value;safeSave();render();});ct.append(l,s);
  }
  if(selection.type==='arrow'){
-  desc('拖动折线本身可整体移动；小方块可单独拖动端点与折点。双击折线任意位置可添加折点。');
-  action('＋ 添加折点',()=>{snapshot();let i=Math.floor(it.points.length/2),a=it.points[Math.max(0,i-1)],b=it.points[i];it.points.splice(i,0,{x:(a.x+b.x)/2,y:(a.y+b.y)/2});safeSave();render();});
-  action('− 移除选中折点',()=>{if(selectedHandle<0||it.points.length<=2)return; snapshot();it.points.splice(selectedHandle,1);selectedHandle=-1;safeSave();render();});
+  choice('箭头线型','style',[['polyline','折线箭头'],['curve','平滑曲线箭头'],['straight','直线箭头']],'polyline');
+  choice('箭头方向','direction',[['end','单向箭头'],['both','双向箭头']],'end');
+  desc(it.style==='curve'?'拖动曲线可整体移动；拖动小方块控制点可调整弯曲程度，端点可连接节点。':'拖动箭头可整体移动；小方块可拖动端点与折点。双击箭头可添加折点。');
+  action('＋ 添加控制点 / 折点',()=>{snapshot();if(it.style==='straight')it.style='polyline';let i=Math.floor(it.points.length/2),a=it.points[Math.max(0,i-1)],b=it.points[i];it.points.splice(i,0,{x:(a.x+b.x)/2,y:(a.y+b.y)/2});safeSave();render();});
+  action('− 移除选中控制点 / 折点',()=>{if(selectedHandle<0||it.points.length<=2)return; snapshot();it.points.splice(selectedHandle,1);selectedHandle=-1;safeSave();render();});
  }else{
   const rr=document.createElement('div');rr.className='row';ct.appendChild(rr);
   for(const axis of ['x','y']){const l=document.createElement('label');l.innerHTML='<span class="formlabel">'+axis.toUpperCase()+' 坐标</span>';const inp=document.createElement('input');inp.className='field';inp.type='number';inp.value=Math.round(it[axis]);inp.disabled=!editing;inp.addEventListener('change',()=>{snapshot();const old=it[axis];it[axis]=Number(inp.value)||0;if(selection.type==='node')data.arrows.forEach(a=>a.points.forEach(p=>{if(p.nodeId===it.id)p[axis]=it[axis];}));safeSave();render();});l.append(inp);rr.append(l);}
@@ -488,9 +529,16 @@ $('saveJson').onclick=()=>{downloadFile((data.title||'项目进度图')+'.json',
 $('openJson').onclick=()=>$('fileInput').click();$('fileInput').addEventListener('change',async ev=>{const file=ev.target.files[0];if(!file)return;try{const d=JSON.parse(await file.text());if(!valid(d))throw new Error('缺少所需数据字段');snapshot();data=d;normalizeMonths();selection=null;safeSave();fit();toast('项目已载入');}catch(e){alert('无法打开文件：'+e.message);}ev.target.value='';});
 $('reset').onclick=()=>{if(!confirm('要恢复初始示例吗？当前修改会被替换。建议先保存项目 JSON。'))return;snapshot();data=makeExample();selection=null;safeSave();fit();toast('已恢复示例图');};
 function downloadFile(name,content,mime){const blob=content instanceof Blob?content:new Blob([content],{type:mime});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),600);}
-function exportSvgString(){const node=document.createElementNS(NS,'svg');node.setAttribute('xmlns',NS);node.setAttribute('width',data.view.w);node.setAttribute('height',data.view.h);node.setAttribute('viewBox',`0 0 ${data.view.w} ${data.view.h}`);node.setAttribute('style','background:white');markerDefs(node);forExportMode=true;const keep=selection;selection=null;renderBase(node,true);drawObjects(node);drawToday(node);selection=keep;forExportMode=false;return new XMLSerializer().serializeToString(node);}
+function legendColumns(){return Math.max(1,Math.min(6,Math.floor((data.view.w-100)/195)));}
+function exportHeight(){return data.view.h+Math.ceil(6/legendColumns())*28+16;}
+function drawExportLegend(root){
+ const columns=legendColumns();
+ const entries=[['#ef4444',6,'红色：风险极大'],['#facc15',6,'黄色：有风险'],['#22c55e',6,'绿色：无风险'],['#eadcf9',6,'紫色：未标记风险'],['#eadcf9',8.8,'重要里程碑'],['#eadcf9',3.5,'事项 / Todo']];
+ entries.forEach(([color,r,text],i)=>{const x=55+(i%columns)*195,y=data.view.h+18+Math.floor(i/columns)*28;svg('circle',{cx:x,cy:y,r,fill:color,stroke:'#647086','stroke-width':1},root);linesText(root,x+15,y+4,text,12,'start');});
+}
+function exportSvgString(){const node=document.createElementNS(NS,'svg');node.setAttribute('xmlns',NS);node.setAttribute('width',data.view.w);node.setAttribute('height',exportHeight());node.setAttribute('viewBox',`0 0 ${data.view.w} ${exportHeight()}`);node.setAttribute('style','background:white');markerDefs(node);forExportMode=true;const keep=selection;selection=null;renderBase(node,true);drawObjects(node);drawToday(node);drawExportLegend(node);selection=keep;forExportMode=false;return new XMLSerializer().serializeToString(node);}
 $('exportSvg').onclick=()=>{downloadFile((data.title||'项目进度图')+'.svg',exportSvgString(),'image/svg+xml;charset=utf-8');toast('SVG 矢量图已导出');};
-$('exportPng').onclick=()=>{const url=URL.createObjectURL(new Blob([exportSvgString()],{type:'image/svg+xml;charset=utf-8'}));const img=new Image();img.onload=()=>{const scale=2;const c=document.createElement('canvas');c.width=data.view.w*scale;c.height=data.view.h*scale;const ctx=c.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,c.width,c.height);ctx.drawImage(img,0,0,c.width,c.height);c.toBlob(blob=>{if(blob)downloadFile((data.title||'项目进度图')+'.png',blob,'image/png');URL.revokeObjectURL(url);toast('高清 PNG 已导出');},'image/png');};img.onerror=()=>{URL.revokeObjectURL(url);alert('PNG 导出失败，请改用 SVG。');};img.src=url;};
+$('exportPng').onclick=()=>{const url=URL.createObjectURL(new Blob([exportSvgString()],{type:'image/svg+xml;charset=utf-8'}));const img=new Image();img.onload=()=>{const scale=2;const c=document.createElement('canvas');c.width=data.view.w*scale;c.height=exportHeight()*scale;const ctx=c.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,c.width,c.height);ctx.drawImage(img,0,0,c.width,c.height);c.toBlob(blob=>{if(blob)downloadFile((data.title||'项目进度图')+'.png',blob,'image/png');URL.revokeObjectURL(url);toast('高清 PNG 已导出');},'image/png');};img.onerror=()=>{URL.revokeObjectURL(url);alert('PNG 导出失败，请改用 SVG。');};img.src=url;};
 document.addEventListener('keydown',ev=>{
  if($('dialogBack').classList.contains('show')){if(ev.key==='Escape')$('dialogCancel').click();return;}
  if(['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName))return;
