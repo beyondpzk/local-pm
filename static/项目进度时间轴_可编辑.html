@@ -193,9 +193,17 @@ function redo(){if(!future.length)return;history.push(JSON.stringify(data));data
 function obj(type,id){const list=type==='node'?data.nodes:type==='text'?data.texts:type==='month'?data.months:type==='lane'?data.lanes:data.arrows;return type==='month'?list[id]:list.find(x=>x.id===id)}
 function svg(tag,attrs={},parent=stage){const e=document.createElementNS(NS,tag);Object.entries(attrs).forEach(([k,v])=>e.setAttribute(k,String(v)));parent.appendChild(e);return e;}
 function linesText(container,x,y,str,size=13,anchor='start',opts={}){const t=svg('text',{x,y,fill:opts.color||'#26334a','font-size':size,'text-anchor':anchor,'font-weight':opts.weight||400,'font-family':'Inter, PingFang SC, Microsoft YaHei, sans-serif','pointer-events':opts.events||'none'},container);String(str).split('\n').forEach((line,i)=>{const a=svg('tspan',{x,dy:i===0?0:Math.round(size*1.48)},t);a.textContent=line;});return t;}
+// The editing surface follows the viewport; saved/exported height follows content.
+function canvasBottom(forExport=false){
+ const bottom=data.view.h-15;
+ if(forExport)return bottom;
+ const rect=stage.getBoundingClientRect(),matrix=stage.getScreenCTM();
+ const visibleBottom=matrix?(rect.bottom-matrix.f)/matrix.d:view.y+view.h;
+ return Math.max(bottom,visibleBottom+160);
+}
 function renderBase(root,forExport=false){
- const right=monthRight(data.months), pageRight=Math.max(right+90,data.view.w-25),lastY=data.view.h-30;
- svg('rect',{x:25,y:15,width:Math.max(pageRight-25,745),height:Math.max((data.view?.h||1020)-30,lastY-5),rx:12,fill:'#fff',stroke:'#e7e5eb','stroke-width':1},root);
+ const right=monthRight(data.months), pageRight=Math.max(right+90,data.view.w-25),pageBottom=canvasBottom(forExport),lastY=pageBottom-15;
+ svg('rect',{'data-whiteboard':'true',x:25,y:15,width:Math.max(pageRight-25,745),height:pageBottom-15,rx:12,fill:'#fff',stroke:'#e7e5eb','stroke-width':1},root);
  const projectTitle=linesText(root,80,69,data.title||'项目里程碑进度图',26,'start',{weight:700,color:'#1d2435',events:forExport?'none':'visiblePainted'});
  if(!forExport){
   projectTitle.setAttribute('role','button');projectTitle.setAttribute('tabindex','0');projectTitle.setAttribute('aria-label','修改画布项目名称');projectTitle.setAttribute('cursor','pointer');
@@ -323,10 +331,10 @@ function todayPosition(months,today=new Date()){
  }
  return null;
 }
-function drawToday(root){
+function drawToday(root,forExport=false){
  const today=new Date(),x=todayPosition(data.months,today);if(x===null)return;
  const g=svg('g',{'data-today-marker':'true','pointer-events':'none'},root);
- const bottom=Math.max(data.view.h-30,(data.lanes.at(-1)?.y||912)+44);
+ const bottom=canvasBottom(forExport)-15;
  svg('line',{x1:x,x2:x,y1:232,y2:bottom,stroke:'#dc5366','stroke-width':1.7,'stroke-dasharray':'7 5'},g);
  const labelX=Math.min(monthRight(data.months)-44,Math.max(monthStart+44,x));
  svg('rect',{x:labelX-42,y:237,width:84,height:23,rx:6,fill:'#fff0f2',stroke:'#f2b5be'},g);
@@ -335,7 +343,7 @@ function drawToday(root){
 function markerDefs(root){const defs=svg('defs',{},root);const m=svg('marker',{id:'head',markerWidth:9,markerHeight:9,refX:7,refY:3.5,orient:'auto-start-reverse',markerUnits:'userSpaceOnUse',viewBox:'0 0 7 7'},defs);svg('path',{d:'M0,0 L7,3.5 L0,7 Z',fill:'#252328'},m);}
 function render(){ensureCanvasHeight();stage.replaceChildren();stage.setAttribute('viewBox',[view.x,view.y,view.w,view.h].join(' '));markerDefs(stage);renderBase(stage);drawObjects(stage);drawToday(stage);$('brandTitle').textContent=data.title||'项目里程碑进度图';document.title=(data.title||'项目里程碑进度图')+'｜可编辑时间轴';updateInspector();refreshMonthsUI();$('zoomStatus').textContent=Math.round((data.view.w||1460)/view.w*100)+'%';}
 function point(ev){const pt=stage.createSVGPoint();pt.x=ev.clientX;pt.y=ev.clientY;return pt.matrixTransform(stage.getScreenCTM().inverse());}
-function setTool(t){tool=t;arrowStart=null;document.querySelectorAll('[data-tool]').forEach(b=>b.classList.toggle('active',b.dataset.tool===t));stage.setAttribute('class',t==='hand'?'grab':t==='node'||t==='text'||t==='arrow'?'mode-'+t:'');$('modeHint').textContent=!editing?'查看模式：使用平移工具移动、滚轮缩放':({select:'拖到底部自动延伸白板 · 靠近画面下边缘继续下移 · 双击文字编辑',node:'点击空白位置，放置可拖动的里程碑节点',text:'点击空白位置，添加自由文字',arrow:'点击起点，再点击终点；选中后拖动线段与端点',hand:'拖动画布 · 滚轮缩放'})[t];if(t!=='select')selection=null;render();}
+function setTool(t){tool=t;arrowStart=null;document.querySelectorAll('[data-tool]').forEach(b=>b.classList.toggle('active',b.dataset.tool===t));stage.setAttribute('class',t==='hand'?'grab':t==='node'||t==='text'||t==='arrow'?'mode-'+t:'');$('modeHint').textContent=!editing?'查看模式：向下平移自动延伸白板 · 滚轮缩放':({select:'拖到底部自动延伸白板 · 靠近画面下边缘继续下移 · 双击文字编辑',node:'点击空白位置，放置可拖动的里程碑节点',text:'点击空白位置，添加自由文字',arrow:'点击起点，再点击终点；选中后拖动线段与端点',hand:'向下平移自动延伸白板 · 滚轮缩放'})[t];if(t!=='select')selection=null;render();}
 function setEditing(v){editing=v;$('editMode').textContent=editing?'✓ 完成编辑':'✎ 进入编辑';$('editMode').classList.toggle('active',editing);document.querySelectorAll('.only-edit').forEach(el=>el.disabled=!editing);$('startMonth').disabled=!editing;$('monthCount').disabled=!editing;if(!editing){selection=null;setTool('hand');}else setTool('select');$('status').textContent=editing?'编辑模式 · 拖动节点/文字/箭头 · 双击文字修改 · 保存项目 JSON 可共享编辑版本':'查看模式 · 单 HTML 文件可直接打开 · 无需联网';updateHistory();}
 function targetFromPoint(pos){return data.nodes.find(n=>Math.hypot(n.x-pos.x,n.y-pos.y)<16)}
 function startDrag(ev,type,id){ev.stopPropagation();if(!editing||tool!=='select'){if(editing&&tool==='arrow'){onCanvasTap(point(ev));}return;}const p=point(ev);selection={type,id};selectedHandle=-1;snapshot();drag={mode:'object',type,id,start:p,origin:clone(obj(type,id))};stage.setPointerCapture(ev.pointerId);render();}
@@ -414,7 +422,7 @@ function moveDrag(ev){if(!drag)return;const p=point(ev);
  }
  if(drag.mode==='pan'){
   const rect=stage.getBoundingClientRect(),dx=(ev.clientX-drag.pos.x)*view.w/rect.width,dy=(ev.clientY-drag.pos.y)*view.h/rect.height;
-  view.x=drag.v.x-dx;view.y=drag.v.y-dy;stage.setAttribute('viewBox',[view.x,view.y,view.w,view.h].join(' '));return;
+  view.x=drag.v.x-dx;view.y=drag.v.y-dy;stage.setAttribute('viewBox',[view.x,view.y,view.w,view.h].join(' '));renderVisualOnly();return;
  }
  if(drag.mode==='object'){
   const it=obj(drag.type,drag.id);if(!it)return;
@@ -609,7 +617,7 @@ function drawExportLegend(root){
  const entries=[['#ef4444',6,'红色：风险极大'],['#facc15',6,'黄色：有风险'],['#22c55e',6,'绿色：无风险'],['#eadcf9',6,'紫色：未标记风险'],['#eadcf9',8.8,'重要里程碑'],['#eadcf9',3.5,'事项 / Todo']];
  entries.forEach(([color,r,text],i)=>{const x=55+(i%columns)*195,y=data.view.h+18+Math.floor(i/columns)*28;svg('circle',{cx:x,cy:y,r,fill:color,stroke:'#647086','stroke-width':1},root);linesText(root,x+15,y+4,text,12,'start');});
 }
-function exportSvgString(){ensureCanvasHeight();const node=document.createElementNS(NS,'svg');node.setAttribute('xmlns',NS);node.setAttribute('width',data.view.w);node.setAttribute('height',exportHeight());node.setAttribute('viewBox',`0 0 ${data.view.w} ${exportHeight()}`);node.setAttribute('style','background:white');markerDefs(node);forExportMode=true;const keep=selection;selection=null;renderBase(node,true);drawObjects(node);drawToday(node);drawExportLegend(node);selection=keep;forExportMode=false;return new XMLSerializer().serializeToString(node);}
+function exportSvgString(){ensureCanvasHeight();const node=document.createElementNS(NS,'svg');node.setAttribute('xmlns',NS);node.setAttribute('width',data.view.w);node.setAttribute('height',exportHeight());node.setAttribute('viewBox',`0 0 ${data.view.w} ${exportHeight()}`);node.setAttribute('style','background:white');markerDefs(node);forExportMode=true;const keep=selection;selection=null;renderBase(node,true);drawObjects(node);drawToday(node,true);drawExportLegend(node);selection=keep;forExportMode=false;return new XMLSerializer().serializeToString(node);}
 $('exportSvg').onclick=()=>{downloadFile((data.title||'项目进度图')+'.svg',exportSvgString(),'image/svg+xml;charset=utf-8');toast('SVG 矢量图已导出');};
 $('exportPng').onclick=()=>{const url=URL.createObjectURL(new Blob([exportSvgString()],{type:'image/svg+xml;charset=utf-8'}));const img=new Image();img.onload=()=>{const scale=2;const c=document.createElement('canvas');c.width=data.view.w*scale;c.height=exportHeight()*scale;const ctx=c.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,c.width,c.height);ctx.drawImage(img,0,0,c.width,c.height);c.toBlob(blob=>{if(blob)downloadFile((data.title||'项目进度图')+'.png',blob,'image/png');URL.revokeObjectURL(url);toast('高清 PNG 已导出');},'image/png');};img.onerror=()=>{URL.revokeObjectURL(url);alert('PNG 导出失败，请改用 SVG。');};img.src=url;};
 document.addEventListener('keydown',ev=>{

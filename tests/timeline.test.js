@@ -50,3 +50,14 @@ test('edge panning uses SVG scale, stops outside the canvas, and ignores normal 
   c.dragPointer.clientX=100;c.drag.mode='pan';assert.equal(c.edgePanSpeed(),0);
   c.drag.mode='lane-move';c.dragPointer.clientY=100;assert.equal(c.edgePanSpeed(),-1);
 });
+test('whiteboard follows downward panning even with no new content, without enlarging exports', () => {
+  const c=canvas();
+  let screen={d:1,f:-600};
+  Object.assign(c,{view:{y:600,h:800},stage:{getBoundingClientRect:()=>({bottom:1000}),getScreenCTM:()=>screen}});
+  vm.runInContext(functionSource('canvasBottom','renderBase'),c);
+  assert.ok(c.canvasBottom()>1600);
+  screen={d:.5,f:-600};
+  assert.ok(c.canvasBottom()>3200,'include zoom and SVG letterboxing');
+  assert.equal(c.canvasBottom(true),1005,'export retains content height');
+  assert.equal(c.data.view.h,1020,'panning must not enlarge saved content or fit bounds');
+});
