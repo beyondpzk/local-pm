@@ -23,7 +23,7 @@
 .month-controls input:disabled,.month-controls button:disabled{opacity:.48}
 .month-guide{display:flex;align-items:center;gap:9px;padding:6px 16px;background:#f5f0ff;border-bottom:1px solid #e6dafa;color:#5b418c;font-size:12px;flex-wrap:wrap}
 .text-color-palette{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:5px}.color-swatch{height:28px;min-width:0;padding:0;border:2px solid transparent;border-radius:6px;background:var(--swatch);color:#fff;font-size:15px;font-weight:700;line-height:24px}.color-swatch:hover{background:var(--swatch);border-color:#94a3b8}.color-swatch[aria-pressed="true"]{outline:2px solid #7354ba;outline-offset:2px;border-color:#fff}.color-swatch:focus-visible{outline:2px solid #172136;outline-offset:2px}
-.node-legend{display:flex;align-items:center;gap:15px;flex-wrap:wrap;padding:7px 16px;background:#fff;border-bottom:1px solid var(--border);font-size:12px;color:#59657a}.node-legend span{display:inline-flex;align-items:center;gap:5px}.legend-dot{display:inline-block;border-radius:50%;width:12px;height:12px;background:#eadcf9;border:1px solid #695779}.legend-dot.todo{width:5px;height:5px}.legend-dot.high{background:#ef4444;border-color:#b91c1c}.legend-dot.medium{background:#facc15;border-color:#a16207}.legend-dot.low{background:#22c55e;border-color:#15803d}
+.node-legend{display:flex;align-items:center;gap:15px;flex-wrap:wrap;padding:7px 16px;background:#fff;border-bottom:1px solid var(--border);font-size:12px;color:#59657a}.node-legend span{display:inline-flex;align-items:center;gap:5px}.legend-dot{display:inline-block;border-radius:50%;width:12px;height:12px;background:#eadcf9;border:1px solid #695779}.legend-dot.star{width:17px;height:17px;border:0;border-radius:0;clip-path:polygon(50% 0%,63% 34%,98% 35%,72% 57%,79% 91%,50% 73%,21% 91%,28% 57%,2% 35%,37% 34%)}.legend-dot.todo{width:5px;height:5px}.legend-dot.high{background:#ef4444;border-color:#b91c1c}.legend-dot.medium{background:#facc15;border-color:#a16207}.legend-dot.low{background:#22c55e;border-color:#15803d}
 .month-guide .dot{width:10px;height:10px;background:#ad8be7;border-radius:3px;display:inline-block}
 .brand-title{display:block;max-width:100%;border:0;background:transparent;padding:0;text-align:left;font-size:inherit;color:var(--ink);cursor:pointer}.brand-title:hover{background:#f7f3ff;color:var(--purple)}.brand-title::after{content:" ✎";color:var(--purple);font-size:13px}.brand-title:focus-visible{outline:2px solid var(--purple);outline-offset:4px}
 #editMode{font-weight:700}.only-edit[disabled]{opacity:.35}@media(max-width:1100px){.inspector{width:222px}.topbar{padding:9px}.brand-sub{display:none}.toolbar button{padding:7px 9px}}@media(max-width:760px){.topbar{align-items:flex-start;flex-direction:column}.toolbar{justify-content:flex-start}.leftbar{width:57px}.tool{font-size:10px}.tool .glyph{font-size:17px}.inspector{position:absolute;right:0;top:120px;bottom:30px;z-index:3;box-shadow:-5px 0 18px #1720361a;display:none}.inspector.show{display:flex}.main{width:100%}}
@@ -49,7 +49,7 @@
   <div class="workspace">
     <aside class="leftbar" id="tools">
       <button class="tool active" data-tool="select" title="选择后拖动；双击文字编辑"><span class="glyph">↖</span>选择</button>
-      <button class="tool only-edit" data-tool="node" title="在画布任意位置点击添加里程碑"><span class="glyph">◉</span>节点</button>
+      <button class="tool only-edit" data-tool="node" title="在画布任意位置点击添加里程碑"><span class="glyph">☆</span>节点</button>
       <button class="tool only-edit" data-tool="text" title="在画布任意位置点击添加文字"><span class="glyph">Ｔ</span>文字</button>
       <button class="tool only-edit" data-tool="arrow" title="点击起点，再点击终点添加箭头"><span class="glyph">↗</span>折线</button>
       <button class="tool only-edit" data-tool="curve" title="依次点击两个节点创建曲线箭头，再拖动控制点调整弧度"><span class="glyph">⤴</span>曲线</button>
@@ -68,7 +68,7 @@
         </div>
       </div>
       <div class="month-guide"><span class="dot"></span><span id="modeHint">查看模式：点击「进入编辑」后，即可修改月份和任务</span><span style="color:#8a789e">编辑时：拖动月份上方的紫色分界手柄调整宽度；点击月份可精确输入宽度；拖动泳道横线可上下调整</span></div>
-      <div class="node-legend" aria-label="节点图例"><span><i class="legend-dot high"></i>红色：风险极大</span><span><i class="legend-dot medium"></i>黄色：有风险</span><span><i class="legend-dot low"></i>绿色：无风险</span><span><i class="legend-dot"></i>紫色：未标记风险</span><span><i class="legend-dot"></i>大圆：重要里程碑</span><span><i class="legend-dot todo"></i>小圆：事项 / Todo</span></div>
+      <div class="node-legend" aria-label="节点图例"><span><i class="legend-dot high"></i>红色：风险极大</span><span><i class="legend-dot medium"></i>黄色：有风险</span><span><i class="legend-dot low"></i>绿色：无风险</span><span><i class="legend-dot"></i>紫色：未标记风险</span><span><i class="legend-dot star"></i>五角星：重要里程碑</span><span><i class="legend-dot todo"></i>小圆：事项 / Todo</span></div>
       <div class="stage-wrap"><svg id="stage" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1460 960" aria-label="交互式项目时间轴"></svg></div>
       <div class="bottom"><span id="status">示例数据 · 鼠标滚轮缩放 · 点击「进入编辑」开始修改</span><span id="zoomStatus">100%</span></div>
     </main>
@@ -86,7 +86,7 @@ const clone=(x)=>JSON.parse(JSON.stringify(x));
 const uid=(prefix)=>prefix+'_'+Math.random().toString(36).slice(2,10);
 const monthStart=230, MIN_MONTH=120, MAX_MONTH=1400;
 const RISK_LEVELS={unset:{label:'未标记风险',color:'#eadcf9',stroke:'#695779'},high:{label:'风险极大',color:'#ef4444',stroke:'#b91c1c'},medium:{label:'有风险',color:'#facc15',stroke:'#a16207'},low:{label:'无风险',color:'#22c55e',stroke:'#15803d'}};
-const NODE_TYPES={milestone:{label:'重要里程碑',radius:8.8},todo:{label:'事项 / Todo',radius:3.5}};
+const NODE_TYPES={milestone:{label:'重要里程碑',radius:11,shape:'star'},todo:{label:'事项 / Todo',radius:3.5,shape:'circle'}};
 function nodeRisk(node){return Object.hasOwn(RISK_LEVELS,node.risk)?RISK_LEVELS[node.risk]:RISK_LEVELS.unset;}
 function nodeType(node){return Object.hasOwn(NODE_TYPES,node.kind)?NODE_TYPES[node.kind]:NODE_TYPES.milestone;}
 
@@ -345,6 +345,13 @@ function drawArrow(group,a,isSel=false){const pts=a.points;if(pts.length<2)retur
   hit.addEventListener('pointerdown',ev=>startDrag(ev,'arrow',a.id));hit.addEventListener('dblclick',ev=>{if(!editing)return;ev.stopPropagation();insertArrowBend(a,point(ev));});}
 }
 let forExportMode=false;
+function drawNodeSymbol(root,x,y,radius,shape,attrs={}){
+ if(shape==='star'){
+  const points=Array.from({length:10},(_,i)=>{const angle=-Math.PI/2+i*Math.PI/5,r=i%2?radius*.45:radius;return `${x+Math.cos(angle)*r},${y+Math.sin(angle)*r}`;}).join(' ');
+  return svg('polygon',{points,'stroke-linejoin':'round',...attrs},root);
+ }
+ return svg('circle',{cx:x,cy:y,r:radius,...attrs},root);
+}
 function drawObjects(root){
  const arrows=svg('g',{},root);data.arrows.forEach(a=>drawArrow(arrows,a,selection?.type==='arrow'&&selection.id===a.id));
  const nodes=svg('g',{},root);data.nodes.forEach(n=>{
@@ -353,8 +360,8 @@ function drawObjects(root){
   if(sel&&!forExportMode)svg('circle',{cx:n.x,cy:n.y,r:kind.radius+4,fill:'none',stroke:'#7354ba','stroke-width':1.5,'stroke-dasharray':'3 2','pointer-events':'none'},nodes);
   const nodeGroup=svg('g',{cursor:editing?'move':'default'},nodes);
   if(!forExportMode)svg('circle',{'data-node-hit':n.id,cx:n.x,cy:n.y,r:Math.max(10,kind.radius),fill:'transparent'},nodeGroup);
-  const circle=svg('circle',{'data-node-id':n.id,cx:n.x,cy:n.y,r:kind.radius,fill:risk.color,stroke:risk.stroke,'stroke-width':1.6,cursor:editing?'move':'default'},nodeGroup);
-  const ti=svg('title',{},circle);ti.textContent=`${n.title||'未命名节点'} · ${kind.label} · ${risk.label}`;
+  const symbol=drawNodeSymbol(nodeGroup,n.x,n.y,kind.radius,kind.shape,{'data-node-id':n.id,fill:risk.color,stroke:risk.stroke,'stroke-width':1.6,cursor:editing?'move':'default'});
+  const ti=svg('title',{},symbol);ti.textContent=`${n.title||'未命名节点'} · ${kind.label} · ${risk.label}`;
   if(!forExportMode){nodeGroup.addEventListener('pointerdown',ev=>startDrag(ev,'node',n.id));nodeGroup.addEventListener('dblclick',ev=>{if(!editing)return;ev.stopPropagation();openTextDialog(n,'title','修改里程碑标题');});}
  });
  const texts=svg('g',{},root);data.texts.forEach(t=>{
@@ -581,7 +588,7 @@ function updateInspector(){
  if(selection.type==='node'){
   label('节点说明（鼠标悬浮可看）',it.title||'',v=>it.title=v);
   choice('风险颜色','risk',[['unset','紫色 · 未标记风险'],['high','红色 · 风险极大'],['medium','黄色 · 有风险'],['low','绿色 · 无风险']],'unset');
-  choice('节点类型 / 圆圈大小','kind',[['milestone','大圆圈 · 重要里程碑（Milestone）'],['todo','小圆圈 · 事项 / Todo']],'milestone');
+  choice('节点类型 / 形状','kind',[['milestone','五角星 · 重要里程碑（Milestone）'],['todo','小圆圈 · 事项 / Todo']],'milestone');
  }
 
  if(selection.type==='text'){
@@ -677,8 +684,8 @@ function legendColumns(){return Math.max(1,Math.min(6,Math.floor((data.view.w-10
 function exportHeight(){return data.view.h+Math.ceil(6/legendColumns())*28+16;}
 function drawExportLegend(root){
  const columns=legendColumns();
- const entries=[['#ef4444',6,'红色：风险极大'],['#facc15',6,'黄色：有风险'],['#22c55e',6,'绿色：无风险'],['#eadcf9',6,'紫色：未标记风险'],['#eadcf9',8.8,'重要里程碑'],['#eadcf9',3.5,'事项 / Todo']];
- entries.forEach(([color,r,text],i)=>{const x=55+(i%columns)*195,y=data.view.h+18+Math.floor(i/columns)*28;svg('circle',{cx:x,cy:y,r,fill:color,stroke:'#647086','stroke-width':1},root);linesText(root,x+15,y+4,text,12,'start');});
+ const entries=[['#ef4444',6,'红色：风险极大'],['#facc15',6,'黄色：有风险'],['#22c55e',6,'绿色：无风险'],['#eadcf9',6,'紫色：未标记风险'],['#eadcf9',11,'重要里程碑','star'],['#eadcf9',3.5,'事项 / Todo']];
+ entries.forEach(([color,r,text,shape='circle'],i)=>{const x=55+(i%columns)*195,y=data.view.h+18+Math.floor(i/columns)*28;drawNodeSymbol(root,x,y,r,shape,{fill:color,stroke:'#647086','stroke-width':1});linesText(root,x+15,y+4,text,12,'start');});
 }
 function exportSvgString(){ensureCanvasHeight();const node=document.createElementNS(NS,'svg');node.setAttribute('xmlns',NS);node.setAttribute('width',data.view.w);node.setAttribute('height',exportHeight());node.setAttribute('viewBox',`0 0 ${data.view.w} ${exportHeight()}`);node.setAttribute('style','background:white');markerDefs(node);forExportMode=true;const keep=selection;selection=null;renderBase(node,true);drawObjects(node);drawToday(node,true);drawExportLegend(node);selection=keep;forExportMode=false;return new XMLSerializer().serializeToString(node);}
 $('exportSvg').onclick=()=>{downloadFile((data.title||'项目进度图')+'.svg',exportSvgString(),'image/svg+xml;charset=utf-8');toast('SVG 矢量图已导出');};

@@ -65,7 +65,7 @@ function connectorCanvas() {
   const c=canvas();
   Object.assign(c,{tool:'curve',editing:true,arrowStart:null,selection:null,uid:()=> 'test-connector',clone:value=>JSON.parse(JSON.stringify(value)),
     snapshot:()=>{},render:()=>{},renderVisualOnly:()=>{},safeSave:()=>{},toast:()=>{},point:p=>p,
-    nodeType:n=>({radius:n.kind==='todo'?3.5:8.8}),
+    nodeType:n=>({radius:n.kind==='todo'?3.5:11}),
     setTool:tool=>{c.tool=tool;c.arrowStart=null;}});
   c.data.nodes=[{id:'a',x:300,y:400},{id:'b',x:600,y:400}];
   c.obj=(type,id)=>c.data[type==='node'?'nodes':'arrows'].find(item=>item.id===id);
@@ -102,7 +102,7 @@ test('moving either connected node moves its endpoint while keeping the curve co
 test('arrowheads stop outside node circles without changing saved connection coordinates',()=>{
   const c=connectorCanvas();c.onCanvasTap({x:300,y:400},'a');c.onCanvasTap({x:600,y:400},'b');
   const arrow=c.data.arrows[0],drawn=c.arrowDrawingPoints(arrow);
-  assert.ok(Math.hypot(drawn[2].x-600,drawn[2].y-400)>8.8);
+  assert.ok(Math.hypot(drawn[2].x-600,drawn[2].y-400)>11);
   assert.equal(arrow.points[2].x,600);assert.equal(arrow.points[2].y,400);
   c.tool='arrow';c.onCanvasTap({x:300,y:400},'a');c.onCanvasTap({x:600,y:400},'b');
   assert.equal(c.data.arrows[1].style,'polyline');assert.equal(c.data.arrows[1].points[0].nodeId,'a');
