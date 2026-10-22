@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>项目进度时间轴｜可编辑</title>
+<title>项目时间轴</title>
 <style>
 :root{color-scheme:light;--ink:#172136;--muted:#647086;--border:#e1e6ee;--purple:#7354ba;--purple-weak:#efe8ff;--bg:#f5f7fb;--white:#fff}
 *{box-sizing:border-box}html,body{margin:0;height:100%;font-family:Inter,-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;color:var(--ink);background:var(--bg)}
@@ -32,7 +32,7 @@
 <body>
 <div id="app">
   <header class="topbar">
-    <div class="brand"><div class="brand-mark">↗</div><div><button type="button" class="brand-title" id="brandTitle" title="点击修改项目名称" aria-label="修改项目名称">项目里程碑进度图</button><div class="brand-sub">一个文件即可查看 · 无需安装 · 编辑数据保存在本机</div></div></div>
+    <div class="brand"><div class="brand-mark">↗</div><div><button type="button" class="brand-title" id="brandTitle" title="点击修改项目名称" aria-label="修改项目名称">项目时间轴</button><div class="brand-sub">一个文件即可查看 · 无需安装 · 编辑数据保存在本机</div></div></div>
     <div class="toolbar">
       <button id="editMode" class="primary" title="查看者默认不能误拖动，点击进入编辑模式">✎ 进入编辑</button>
       <button id="undo" title="撤销 Ctrl/⌘+Z" disabled>↶ 撤销</button>
@@ -181,7 +181,7 @@ if(sharedMode){
   }else sharedDraft=null;
  }catch(e){
   const notice=document.createElement('div');notice.style.cssText='padding:48px;line-height:2';
-  notice.textContent='暂时无法连接共享时间轴，请刷新重试。'+e.message;
+  notice.textContent='暂时无法连接项目时间轴，请刷新重试。'+e.message;
   document.querySelector('#app').replaceChildren(notice);return;
  }
 }else{
@@ -236,7 +236,7 @@ function canvasBottom(forExport=false){
 function renderBase(root,forExport=false){
  const right=monthRight(data.months), pageRight=Math.max(right+90,data.view.w-25),pageBottom=canvasBottom(forExport),lastY=pageBottom-15;
  svg('rect',{'data-whiteboard':'true',x:25,y:15,width:Math.max(pageRight-25,745),height:pageBottom-15,rx:12,fill:'#fff',stroke:'#e7e5eb','stroke-width':1},root);
- const projectTitle=linesText(root,80,69,data.title||'项目里程碑进度图',26,'start',{weight:700,color:'#1d2435',events:forExport?'none':'visiblePainted'});
+ const projectTitle=linesText(root,80,69,data.title||'项目时间轴',26,'start',{weight:700,color:'#1d2435',events:forExport?'none':'visiblePainted'});
  if(!forExport){
   projectTitle.setAttribute('role','button');projectTitle.setAttribute('tabindex','0');projectTitle.setAttribute('aria-label','修改画布项目名称');projectTitle.setAttribute('cursor','pointer');
   projectTitle.addEventListener('pointerdown',ev=>ev.stopPropagation());
@@ -373,7 +373,7 @@ function drawToday(root,forExport=false){
  linesText(g,labelX,253,`今天 ${today.getMonth()+1}/${today.getDate()}`,12,'middle',{weight:650,color:'#c4374c'});
 }
 function markerDefs(root){const defs=svg('defs',{},root);const m=svg('marker',{id:'head',markerWidth:9,markerHeight:9,refX:7,refY:3.5,orient:'auto-start-reverse',markerUnits:'userSpaceOnUse',viewBox:'0 0 7 7'},defs);svg('path',{d:'M0,0 L7,3.5 L0,7 Z',fill:'#252328'},m);}
-function render(){ensureCanvasHeight();stage.replaceChildren();stage.setAttribute('viewBox',[view.x,view.y,view.w,view.h].join(' '));markerDefs(stage);renderBase(stage);drawObjects(stage);drawToday(stage);$('brandTitle').textContent=data.title||'项目里程碑进度图';document.title=(data.title||'项目里程碑进度图')+'｜可编辑时间轴';updateInspector();refreshMonthsUI();$('zoomStatus').textContent=Math.round((data.view.w||1460)/view.w*100)+'%';}
+function render(){ensureCanvasHeight();stage.replaceChildren();stage.setAttribute('viewBox',[view.x,view.y,view.w,view.h].join(' '));markerDefs(stage);renderBase(stage);drawObjects(stage);drawToday(stage);$('brandTitle').textContent=data.title||'项目时间轴';document.title=(data.title||'项目时间轴')+'｜项目时间轴';updateInspector();refreshMonthsUI();$('zoomStatus').textContent=Math.round((data.view.w||1460)/view.w*100)+'%';}
 function point(ev){const pt=stage.createSVGPoint();pt.x=ev.clientX;pt.y=ev.clientY;return pt.matrixTransform(stage.getScreenCTM().inverse());}
 function setTool(t){tool=t;arrowStart=null;document.querySelectorAll('[data-tool]').forEach(b=>b.classList.toggle('active',b.dataset.tool===t));stage.setAttribute('class',t==='hand'?'grab':t==='node'||t==='text'||t==='arrow'?'mode-'+t:'');$('modeHint').textContent=!editing?'查看模式：向下平移自动延伸白板 · 滚轮缩放':({select:'拖到底部自动延伸白板 · 靠近画面下边缘继续下移 · 双击文字编辑',node:'点击空白位置，放置可拖动的里程碑节点',text:'点击空白位置，添加自由文字',arrow:'点击起点，再点击终点；选中后拖动线段与端点',hand:'向下平移自动延伸白板 · 滚轮缩放'})[t];if(t!=='select')selection=null;render();}
 function setEditing(v){if(sharedMode&&v&&!editorName){askEditor(()=>setEditing(true));return;}editing=v;$('editMode').textContent=editing?'✓ 完成编辑':'✎ 进入编辑';$('editMode').classList.toggle('active',editing);document.querySelectorAll('.only-edit').forEach(el=>el.disabled=!editing);$('startMonth').disabled=!editing;$('monthCount').disabled=!editing;if(!editing){selection=null;setTool('hand');}else setTool('select');$('status').textContent=sharedMode?(editing?'共享编辑 · 修改自动保存到服务器 · 注意顶部同步状态':'共享查看 · 每 5 秒检查最新进度'):(editing?'编辑模式 · 拖动节点/文字/箭头 · 双击文字修改 · 保存项目 JSON 可共享编辑版本':'查看模式 · 单 HTML 文件可直接打开 · 无需联网');updateHistory();}
@@ -584,7 +584,7 @@ function updateInspector(){
  action('删除选中的对象',()=>{deleteSelected();},'danger');
 }
 // Update canvas without destroying an actively edited property input.
-function renderVisualOnly(){ensureCanvasHeight();stage.replaceChildren();markerDefs(stage);renderBase(stage);drawObjects(stage);drawToday(stage);$('brandTitle').textContent=data.title||'项目里程碑进度图';document.title=(data.title||'项目里程碑进度图')+'｜可编辑时间轴';}
+function renderVisualOnly(){ensureCanvasHeight();stage.replaceChildren();markerDefs(stage);renderBase(stage);drawObjects(stage);drawToday(stage);$('brandTitle').textContent=data.title||'项目时间轴';document.title=(data.title||'项目时间轴')+'｜项目时间轴';}
 function deleteSelected(){if(!selection||!editing||selection.type==='month')return;
  if(selection.type==='lane'){
   const lane=obj('lane',selection.id);if(!lane)return;
@@ -736,7 +736,7 @@ function startSharedSync(){
  const editor=document.createElement('button');editor.id='sharedEditor';editor.textContent=editorName?'编辑人：'+editorName+'（填写）':'填写编辑姓名';editor.onclick=()=>askEditor();
  const versions=document.createElement('button');versions.textContent='历史记录';versions.onclick=openSharedHistory;
  bar.append(status,editor,versions,download,latest,retry);document.querySelector('.workspace').before(bar);
- document.querySelector('.brand-sub').textContent='公司内网共享 · 修改自动保存到服务器';
+ document.querySelector('.brand-sub').textContent='项目时间轴 · 修改自动保存到服务器';
  $('reset').hidden=true;
  function keepDraft(){
   if(saveQueue.dirty)sharedDraft={revision:saveQueue.revision,timeline:clone(data),editor:editorName};
