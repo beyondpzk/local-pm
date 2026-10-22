@@ -1,0 +1,15 @@
+[Unit]
+Description=Company shared project timeline
+After=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/timeline-service
+ExecStart=/usr/bin/python3 -u %h/timeline-service/timeline_server.py --host 10.2.60.36 --port 8766 --web-root %h/timeline-service/web --state-dir %h/timeline-service/data
+Restart=always
+RestartSec=5
+UMask=0077
+NoNewPrivileges=true
+
+[Install]
+WantedBy=default.target

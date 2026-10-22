@@ -8,7 +8,7 @@ function functionSource(name, next) {
   return source.slice(source.indexOf(`function ${name}(`), source.indexOf(`function ${next}(`));
 }
 function canvas() {
-  const context = vm.createContext({data:{view:{w:1385,h:1020},lanes:[],nodes:[],texts:[],arrows:[]}});
+  const context = vm.createContext({saveQueue:null,data:{view:{w:1385,h:1020},lanes:[],nodes:[],texts:[],arrows:[]}});
   vm.runInContext(functionSource('curveControl','arrowPath') + functionSource('ensureCanvasHeight','safeSave'), context);
   return context;
 }

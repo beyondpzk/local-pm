@@ -87,3 +87,7 @@ node --test tests/frontend.test.js
 ```
 
 代码分工：`app.py` 处理 HTTP，`models.py` 负责数据校验和任务同步，`storage.py` 负责持久化、版本和备份，`static/save-queue.js` 负责前端保存队列。
+
+## 仅部署共享时间轴
+
+Linux 内网共享、编辑人记录和版本历史的部署与维护说明见 [deploy/README.md](deploy/README.md)。
