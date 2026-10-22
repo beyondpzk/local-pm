@@ -12,7 +12,7 @@
 .brand{display:flex;align-items:center;gap:10px;min-width:0}.brand-mark{background:#eee7ff;color:#7650b9;border-radius:12px;width:40px;height:40px;display:grid;place-items:center;font-size:21px;font-weight:800}.brand-title{font-weight:760;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.brand-sub{color:var(--muted);font-size:12px;margin-top:3px}
 .toolbar{display:flex;gap:6px;flex-wrap:wrap;align-items:center;justify-content:flex-end}button{font:inherit;border:1px solid var(--border);background:#fff;border-radius:9px;padding:9px 11px;cursor:pointer;color:#334155;font-size:13px;white-space:nowrap}button:hover{background:#f7f3ff;border-color:#cbbaf0}button.active,.primary{background:var(--purple);border-color:var(--purple);color:white}button.active:hover,.primary:hover{background:#5f42aa}button:disabled{opacity:.4;cursor:not-allowed}.divider{width:1px;background:var(--border);height:24px;margin:0 2px}
 .workspace{display:flex;min-height:0;flex:1}.leftbar{width:72px;flex-shrink:0;background:#fff;border-right:1px solid var(--border);padding:12px 8px;display:flex;flex-direction:column;gap:8px}.tool{display:flex;flex-direction:column;align-items:center;gap:3px;padding:10px 4px;font-size:11px;color:#56637a}.tool .glyph{font-size:20px;line-height:22px}.tool.active{color:#fff}
-.main{flex:1;min-width:0;display:flex;flex-direction:column}.canvas-head{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;padding:10px 16px;background:#fafbff;border-bottom:1px solid var(--border)}.canvas-title{font-size:13px;font-weight:600;color:#42516a}.hint{font-size:12px;color:#75839a}.stage-wrap{flex:1;min-height:0;position:relative;overflow:hidden;background-color:#edf0f6;background-image:radial-gradient(#cfd6e2 0.8px,transparent .8px);background-size:20px 20px}#stage{display:block;width:100%;height:100%;touch-action:none;user-select:none}#stage.grab{cursor:grab}#stage.grabbing{cursor:grabbing}#stage.mode-text,#stage.mode-node,#stage.mode-arrow{cursor:crosshair}
+.main{flex:1;min-width:0;display:flex;flex-direction:column}.canvas-head{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;padding:10px 16px;background:#fafbff;border-bottom:1px solid var(--border)}.canvas-title{font-size:13px;font-weight:600;color:#42516a}.hint{font-size:12px;color:#75839a}.stage-wrap{flex:1;min-height:0;position:relative;overflow:hidden;background-color:#edf0f6;background-image:radial-gradient(#cfd6e2 0.8px,transparent .8px);background-size:20px 20px}#stage{display:block;width:100%;height:100%;touch-action:none;user-select:none}#stage.grab{cursor:grab}#stage.grabbing{cursor:grabbing}#stage.mode-text,#stage.mode-node,#stage.mode-arrow,#stage.mode-curve{cursor:crosshair}
 .bottom{padding:8px 16px;background:#fff;border-top:1px solid var(--border);color:#708098;font-size:12px;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}.inspector{width:260px;flex-shrink:0;background:#fff;border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:auto}.inspector-header{font-size:14px;font-weight:750;padding:17px 18px;border-bottom:1px solid var(--border)}.inspect-content{padding:16px;display:flex;flex-direction:column;gap:13px}.subtle{color:#8290a3;font-size:12px;line-height:1.75}.formlabel{font-size:12px;color:#66758d;margin-bottom:5px;display:block}.field,textarea,select{width:100%;border:1px solid #d8dee9;border-radius:8px;background:#fff;color:#273449;font:inherit;font-size:13px;padding:9px;outline:none}.field:focus,textarea:focus,select:focus{border-color:#9371d0;box-shadow:0 0 0 3px #eee7fb}textarea{min-height:105px;resize:vertical;line-height:1.55}.row{display:flex;gap:8px}.row>label{flex:1;min-width:0}.small{padding:7px 9px;font-size:12px}.danger{color:#c63347;border-color:#f0c9cf}.danger:hover{background:#fff2f4;border-color:#dc9fa9}.boxhint{background:#f6f3fc;border-radius:9px;padding:10px;color:#655a81;font-size:12px;line-height:1.7}
 #toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:#253047;color:#fff;padding:10px 18px;border-radius:10px;box-shadow:0 12px 32px #18233b30;z-index:50;opacity:0;pointer-events:none;transition:opacity .2s;font-size:13px}#toast.show{opacity:1}
 .dialog-backdrop{position:fixed;inset:0;background:#101c32aa;z-index:100;display:none;align-items:center;justify-content:center;padding:20px}.dialog-backdrop.show{display:flex}.dialog{background:white;border-radius:14px;padding:22px;width:410px;max-width:100%;box-shadow:0 18px 70px #15203855}.dialog h3{margin:0 0 9px}.dialog p{color:#748094;font-size:13px}.dialog-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:14px}
@@ -51,7 +51,8 @@
       <button class="tool active" data-tool="select" title="选择后拖动；双击文字编辑"><span class="glyph">↖</span>选择</button>
       <button class="tool only-edit" data-tool="node" title="在画布任意位置点击添加里程碑"><span class="glyph">◉</span>节点</button>
       <button class="tool only-edit" data-tool="text" title="在画布任意位置点击添加文字"><span class="glyph">Ｔ</span>文字</button>
-      <button class="tool only-edit" data-tool="arrow" title="点击起点，再点击终点添加箭头"><span class="glyph">↗</span>箭头</button>
+      <button class="tool only-edit" data-tool="arrow" title="点击起点，再点击终点添加箭头"><span class="glyph">↗</span>折线</button>
+      <button class="tool only-edit" data-tool="curve" title="依次点击两个节点创建曲线箭头，再拖动控制点调整弧度"><span class="glyph">⤴</span>曲线</button>
       <button class="tool" data-tool="hand" title="拖动画布"><span class="glyph">✥</span>平移</button>
       <div style="flex:1"></div>
       <button class="tool only-edit" id="addLane" title="新增工作泳道"><span class="glyph">☰＋</span>泳道</button>
@@ -310,8 +311,24 @@ function curveControl(a,b){
  const dx=b.x-a.x,dy=b.y-a.y,length=Math.hypot(dx,dy)||1,bend=Math.min(90,length*.25);
  return {x:(a.x+b.x)/2-dy/length*bend,y:(a.y+b.y)/2+dx/length*bend};
 }
+function arrowDrawingPoints(a){
+ const points=a.points.map(p=>({...p}));
+ for(const i of [0,points.length-1]){
+  const node=data.nodes.find(n=>n.id===points[i]?.nodeId);
+  if(node){points[i].x=node.x;points[i].y=node.y;}
+ }
+ const original=points.map(p=>({...p}));
+ for(const i of [0,points.length-1]){
+  const p=points[i],node=data.nodes.find(n=>n.id===p?.nodeId);if(!node)continue;
+  const toward=a.style==='straight'?original[i===0?original.length-1:0]:a.style==='curve'&&original.length===2?curveControl(original[0],original[1]):original[i===0?1:i-1];
+  if(!toward)continue;
+  const dx=toward.x-p.x,dy=toward.y-p.y,length=Math.hypot(dx,dy),offset=nodeType(node).radius+2;
+  if(length>offset){p.x+=dx/length*offset;p.y+=dy/length*offset;}
+ }
+ return points;
+}
 function arrowPath(a){
- const pts=a.points;if(pts.length<2)return '';
+ const pts=arrowDrawingPoints(a);if(pts.length<2)return '';
  const start=`M ${pts[0].x} ${pts[0].y}`,last=pts.at(-1);
  if(a.style==='straight')return `${start} L ${last.x} ${last.y}`;
  if(a.style!=='curve')return pts.map((p,i)=>(i?'L':'M')+' '+p.x+' '+p.y).join(' ');
@@ -331,7 +348,7 @@ let forExportMode=false;
 function drawObjects(root){
  const arrows=svg('g',{},root);data.arrows.forEach(a=>drawArrow(arrows,a,selection?.type==='arrow'&&selection.id===a.id));
  const nodes=svg('g',{},root);data.nodes.forEach(n=>{
-  const sel=selection?.type==='node'&&selection.id===n.id;
+  const sel=(selection?.type==='node'&&selection.id===n.id)||arrowStart?.nodeId===n.id;
   const risk=nodeRisk(n),kind=nodeType(n);
   if(sel&&!forExportMode)svg('circle',{cx:n.x,cy:n.y,r:kind.radius+4,fill:'none',stroke:'#7354ba','stroke-width':1.5,'stroke-dasharray':'3 2','pointer-events':'none'},nodes);
   const nodeGroup=svg('g',{cursor:editing?'move':'default'},nodes);
@@ -348,7 +365,7 @@ function drawObjects(root){
  });
  if(selection?.type==='arrow'&&editing&&!forExportMode){const a=obj('arrow',selection.id);if(a)a.points.forEach((p,i)=>{
   if(a.style==='straight'&&i>0&&i<a.points.length-1)return;
-  const c=svg('rect',{x:p.x-6,y:p.y-6,width:12,height:12,rx:3,fill:selectedHandle===i?'#8056ce':'#fff',stroke:'#845bc5','stroke-width':2,cursor:'crosshair'},root);
+  const c=svg('rect',{'data-arrow-handle':a.id+':'+i,x:p.x-6,y:p.y-6,width:12,height:12,rx:3,fill:selectedHandle===i?'#8056ce':'#fff',stroke:'#845bc5','stroke-width':2,cursor:'crosshair'},root);
   c.addEventListener('pointerdown',ev=>startHandleDrag(ev,a.id,i));
  });}
 }
@@ -375,10 +392,16 @@ function drawToday(root,forExport=false){
 function markerDefs(root){const defs=svg('defs',{},root);const m=svg('marker',{id:'head',markerWidth:9,markerHeight:9,refX:7,refY:3.5,orient:'auto-start-reverse',markerUnits:'userSpaceOnUse',viewBox:'0 0 7 7'},defs);svg('path',{d:'M0,0 L7,3.5 L0,7 Z',fill:'#252328'},m);}
 function render(){ensureCanvasHeight();stage.replaceChildren();stage.setAttribute('viewBox',[view.x,view.y,view.w,view.h].join(' '));markerDefs(stage);renderBase(stage);drawObjects(stage);drawToday(stage);$('brandTitle').textContent=data.title||'项目时间轴';document.title=(data.title||'项目时间轴')+'｜项目时间轴';updateInspector();refreshMonthsUI();$('zoomStatus').textContent=Math.round((data.view.w||1460)/view.w*100)+'%';}
 function point(ev){const pt=stage.createSVGPoint();pt.x=ev.clientX;pt.y=ev.clientY;return pt.matrixTransform(stage.getScreenCTM().inverse());}
-function setTool(t){tool=t;arrowStart=null;document.querySelectorAll('[data-tool]').forEach(b=>b.classList.toggle('active',b.dataset.tool===t));stage.setAttribute('class',t==='hand'?'grab':t==='node'||t==='text'||t==='arrow'?'mode-'+t:'');$('modeHint').textContent=!editing?'查看模式：向下平移自动延伸白板 · 滚轮缩放':({select:'拖到底部自动延伸白板 · 靠近画面下边缘继续下移 · 双击文字编辑',node:'点击空白位置，放置可拖动的里程碑节点',text:'点击空白位置，添加自由文字',arrow:'点击起点，再点击终点；选中后拖动线段与端点',hand:'向下平移自动延伸白板 · 滚轮缩放'})[t];if(t!=='select')selection=null;render();}
+function setTool(t){tool=t;arrowStart=null;document.querySelectorAll('[data-tool]').forEach(b=>b.classList.toggle('active',b.dataset.tool===t));stage.setAttribute('class',t==='hand'?'grab':t==='node'||t==='text'||t==='arrow'||t==='curve'?'mode-'+t:'');$('modeHint').textContent=!editing?'查看模式：向下平移自动延伸白板 · 滚轮缩放':({select:'拖到底部自动延伸白板 · 靠近画面下边缘继续下移 · 双击文字编辑',node:'点击空白位置，放置可拖动的里程碑节点',text:'点击空白位置，添加自由文字',arrow:'依次点击两个节点创建折线箭头；端点随节点移动',curve:'依次点击两个节点创建曲线箭头；拖动中间小方块调整弧度，Esc 取消',hand:'向下平移自动延伸白板 · 滚轮缩放'})[t];if(t!=='select')selection=null;render();}
 function setEditing(v){if(sharedMode&&v&&!editorName){askEditor(()=>setEditing(true));return;}editing=v;$('editMode').textContent=editing?'✓ 完成编辑':'✎ 进入编辑';$('editMode').classList.toggle('active',editing);document.querySelectorAll('.only-edit').forEach(el=>el.disabled=!editing);$('startMonth').disabled=!editing;$('monthCount').disabled=!editing;if(!editing){selection=null;setTool('hand');}else setTool('select');$('status').textContent=sharedMode?(editing?'共享编辑 · 修改自动保存到服务器 · 注意顶部同步状态':'共享查看 · 每 5 秒检查最新进度'):(editing?'编辑模式 · 拖动节点/文字/箭头 · 双击文字修改 · 保存项目 JSON 可共享编辑版本':'查看模式 · 单 HTML 文件可直接打开 · 无需联网');updateHistory();}
-function targetFromPoint(pos){return data.nodes.find(n=>Math.hypot(n.x-pos.x,n.y-pos.y)<16)}
-function startDrag(ev,type,id){ev.stopPropagation();if(!editing||tool!=='select'){if(editing&&tool==='arrow'){onCanvasTap(point(ev));}return;}const p=point(ev);selection={type,id};selectedHandle=-1;snapshot();drag={mode:'object',type,id,start:p,origin:clone(obj(type,id))};stage.setPointerCapture(ev.pointerId);render();}
+function targetFromPoint(pos){return data.nodes.filter(n=>Math.hypot(n.x-pos.x,n.y-pos.y)<16).sort((a,b)=>Math.hypot(a.x-pos.x,a.y-pos.y)-Math.hypot(b.x-pos.x,b.y-pos.y))[0]}
+function isArrowTool(){return tool==='arrow'||tool==='curve';}
+function connectedPoint(p,nodeId){const node=nodeId?obj('node',nodeId):targetFromPoint(p);return node?{x:node.x,y:node.y,nodeId:node.id}:{x:p.x,y:p.y};}
+function createConnector(from,to,style){
+ const points=style==='curve'?[{...from},curveControl(from,to),{...to}]:Math.abs(from.x-to.x)<25?[{...from},{...to}]:[{...from},{x:from.x,y:to.y},{...to}];
+ return {id:uid('a'),style,points};
+}
+function startDrag(ev,type,id){ev.stopPropagation();if(!editing||tool!=='select'){if(editing&&isArrowTool()){onCanvasTap(point(ev),type==='node'?id:null);}return;}const p=point(ev);selection={type,id};selectedHandle=-1;snapshot();drag={mode:'object',type,id,start:p,origin:clone(obj(type,id))};stage.setPointerCapture(ev.pointerId);render();}
 function setLaneY(id,value){
  const lane=obj('lane',id);if(!lane||!Number.isFinite(value))return;
  const oldY=lane.y,previous=Math.max(240,...data.lanes.filter(l=>l.y<oldY).map(l=>l.y));
@@ -430,17 +453,23 @@ function refreshMonthsUI(){
  $('rangeTitle').textContent=`${a.year} 年 ${a.month} 月 — ${b.year} 年 ${b.month} 月 · ${data.months.length} 个月`;
 }
 function startHandleDrag(ev,id,index){ev.stopPropagation();if(!editing)return;selection={type:'arrow',id};selectedHandle=index;snapshot();drag={mode:'handle',id,index};stage.setPointerCapture(ev.pointerId);render();}
-function onCanvasTap(p){if(tool==='node'){
+function onCanvasTap(p,nodeId=null){if(tool==='node'){
  snapshot();const name='新里程碑';const n={id:uid('n'),x:Math.round(p.x),y:Math.round(p.y),title:name};data.nodes.push(n);selection={type:'node',id:n.id};setTool('select');selection={type:'node',id:n.id};render();safeSave();toast('已添加节点，可拖动或在右侧修改');
  }else if(tool==='text'){
  snapshot();const t={id:uid('t'),x:Math.round(p.x),y:Math.round(p.y),text:'双击修改文字',fontSize:14,align:'start'};data.texts.push(t);setTool('select');selection={type:'text',id:t.id};render();safeSave();openTextDialog(t,'text','输入文字');
- }else if(tool==='arrow'){
-  if(!arrowStart){arrowStart=p;toast('已确定起点，请点击箭头终点');}
-  else{snapshot();const from=arrowStart,to=p;const snapped=targetFromPoint(to);const last=snapped?{x:snapped.x,y:snapped.y,nodeId:snapped.id}:{x:to.x,y:to.y};const pts=Math.abs(from.x-to.x)<25?[{x:from.x,y:from.y},last]:[{x:from.x,y:from.y},{x:from.x,y:to.y},last];const a={id:uid('a'),points:pts};data.arrows.push(a);arrowStart=null;setTool('select');selection={type:'arrow',id:a.id};render();safeSave();toast('箭头已添加；选择箭头后拖动端点或折点');}
+ }else if(isArrowTool()){
+  const endpoint=connectedPoint(p,nodeId);
+  if(!arrowStart){arrowStart=endpoint;renderVisualOnly();toast('已选中起点，请点击另一个节点；Esc 可取消');}
+  else{
+   if((arrowStart.nodeId&&arrowStart.nodeId===endpoint.nodeId)||Math.hypot(arrowStart.x-endpoint.x,arrowStart.y-endpoint.y)<1){toast('请选择另一个节点或不同的终点');return;}
+   snapshot();const a=createConnector(arrowStart,endpoint,tool==='curve'?'curve':'polyline');data.arrows.push(a);
+   setTool('select');selection={type:'arrow',id:a.id};render();safeSave();
+   toast(a.style==='curve'?'曲线已连接，拖动中间小方块调整弧度':'折线已连接，端点随节点移动');
+  }
  }}
 stage.addEventListener('pointerdown',ev=>{if(ev.button!==0&&ev.button!==1)return;const p=point(ev);
  if((tool==='hand'||ev.button===1)&&!drag){drag={mode:'pan',pos:{x:ev.clientX,y:ev.clientY},v:clone(view)};stage.setPointerCapture(ev.pointerId);stage.classList.add('grabbing');return;}
- if(editing&&(tool==='node'||tool==='text'||tool==='arrow')){onCanvasTap(p);return;}
+ if(editing&&(tool==='node'||tool==='text'||isArrowTool())){onCanvasTap(p);return;}
  if(tool==='select'){selection=null;render();}
 });
 function moveDrag(ev){if(!drag)return;const p=point(ev);
@@ -494,7 +523,7 @@ function pointerRelease(ev){
  if(autoPanFrame!==null)cancelAnimationFrame(autoPanFrame);
  autoPanFrame=null;autoPanTime=0;dragPointer=null;
  if(!drag)return;if(drag.mode==='handle'){
- const a=obj('arrow',drag.id);if(a){const pt=a.points[drag.index],node=targetFromPoint(pt);if(node){pt.x=node.x;pt.y=node.y;pt.nodeId=node.id;}}
+ const a=obj('arrow',drag.id);if(a){const pt=a.points[drag.index],node=(drag.index===0||drag.index===a.points.length-1)?targetFromPoint(pt):null;if(node){pt.x=node.x;pt.y=node.y;pt.nodeId=node.id;}}
  }if(drag.mode==='object'||drag.mode==='handle'||drag.mode==='month-resize'||drag.mode==='lane-move')safeSave();drag=null;stage.classList.remove('grabbing');render();}
 stage.addEventListener('pointerup',pointerRelease);stage.addEventListener('pointercancel',pointerRelease);
 stage.addEventListener('lostpointercapture',pointerRelease);window.addEventListener('blur',pointerRelease);
@@ -771,7 +800,7 @@ function startSharedSync(){
   // Preserve an older local draft until the user explicitly loads the latest version.
   status.textContent=sharedNotice||('已保存 · '+versionLabel(sharedMeta));retry.hidden=true;
  }
- function idle(){return !saveQueue.dirty&&!saveQueue.error&&!drag&&!syncBusy&&!historyOpen&&!$('dialogBack').classList.contains('show')&&!['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName);}
+ function idle(){return !saveQueue.dirty&&!saveQueue.error&&!drag&&!arrowStart&&!syncBusy&&!historyOpen&&!$('dialogBack').classList.contains('show')&&!['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName);}
  setInterval(async()=>{
   if(!idle())return;
   const revision=saveQueue.revision;syncBusy=true;

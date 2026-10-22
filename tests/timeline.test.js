@@ -61,3 +61,49 @@ test('whiteboard follows downward panning even with no new content, without enla
   assert.equal(c.canvasBottom(true),1005,'export retains content height');
   assert.equal(c.data.view.h,1020,'panning must not enlarge saved content or fit bounds');
 });
+function connectorCanvas() {
+  const c=canvas();
+  Object.assign(c,{tool:'curve',editing:true,arrowStart:null,selection:null,uid:()=> 'test-connector',clone:value=>JSON.parse(JSON.stringify(value)),
+    snapshot:()=>{},render:()=>{},renderVisualOnly:()=>{},safeSave:()=>{},toast:()=>{},point:p=>p,
+    nodeType:n=>({radius:n.kind==='todo'?3.5:8.8}),
+    setTool:tool=>{c.tool=tool;c.arrowStart=null;}});
+  c.data.nodes=[{id:'a',x:300,y:400},{id:'b',x:600,y:400}];
+  c.obj=(type,id)=>c.data[type==='node'?'nodes':'arrows'].find(item=>item.id===id);
+  vm.runInContext(functionSource('targetFromPoint','startDrag')+functionSource('arrowPath','drawArrow'),c);
+  vm.runInContext(source.slice(source.indexOf('function onCanvasTap('),source.indexOf("stage.addEventListener('pointerdown'")),c);
+  vm.runInContext(source.slice(source.indexOf('function moveDrag('),source.indexOf('\nlet dragPointer=')),c);
+  return c;
+}
+test('curve tool connects both clicked nodes and creates an editable curved path',()=>{
+  const c=connectorCanvas();
+  c.onCanvasTap({x:302,y:402},'a');
+  c.onCanvasTap({x:300,y:400},'a');assert.equal(c.data.arrows.length,0,'same node does not create a zero-length connector');
+  c.onCanvasTap({x:598,y:399},'b');
+  const arrow=c.data.arrows[0];
+  assert.equal(arrow.style,'curve');assert.equal(arrow.points.length,3);
+  assert.equal(arrow.points[0].nodeId,'a');assert.equal(arrow.points[2].nodeId,'b');
+  assert.notEqual(arrow.points[1].y,400);assert.match(c.arrowPath(arrow),/ Q /);
+  assert.equal(c.tool,'select');
+});
+test('moving either connected node moves its endpoint while keeping the curve control editable',()=>{
+  const c=connectorCanvas();c.onCanvasTap({x:300,y:400},'a');c.onCanvasTap({x:600,y:400},'b');
+  for(const id of ['a','b']) {
+    const node=c.obj('node',id),origin={...node};
+    c.drag={mode:'object',type:'node',id,start:{x:node.x,y:node.y},origin};
+    c.moveDrag({x:origin.x+20,y:origin.y+40});
+    const endpoint=c.data.arrows[0].points.find(p=>p.nodeId===id);
+    assert.equal(endpoint.x,node.x);assert.equal(endpoint.y,node.y);
+  }
+  const arrow=c.data.arrows[0],previous=c.arrowPath(arrow);
+  c.drag={mode:'handle',id:arrow.id,index:1};c.moveDrag({x:450,y:600});
+  assert.notEqual(c.arrowPath(arrow),previous);
+  assert.equal(arrow.points[0].nodeId,'a');assert.equal(arrow.points[2].nodeId,'b');
+});
+test('arrowheads stop outside node circles without changing saved connection coordinates',()=>{
+  const c=connectorCanvas();c.onCanvasTap({x:300,y:400},'a');c.onCanvasTap({x:600,y:400},'b');
+  const arrow=c.data.arrows[0],drawn=c.arrowDrawingPoints(arrow);
+  assert.ok(Math.hypot(drawn[2].x-600,drawn[2].y-400)>8.8);
+  assert.equal(arrow.points[2].x,600);assert.equal(arrow.points[2].y,400);
+  c.tool='arrow';c.onCanvasTap({x:300,y:400},'a');c.onCanvasTap({x:600,y:400},'b');
+  assert.equal(c.data.arrows[1].style,'polyline');assert.equal(c.data.arrows[1].points[0].nodeId,'a');
+});
